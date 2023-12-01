@@ -86,7 +86,7 @@ fn usage() -> ! {
 }
 
 fn find_highest_day() -> i32 {
-    let dir = std::fs::read_dir("./src").unwrap();
+    let dir = std::fs::read_dir("./src/bin").unwrap();
     let mut highest_day = 0;
     let day_regex = Regex::new("^day([0-9])+$").unwrap();
     for a in dir.map(Result::unwrap) {
