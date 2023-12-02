@@ -89,7 +89,11 @@ fn part_2(input: &str) -> u64 {
             find_last_digit(&input[..input.len() - 1])
         }
     }
-    find_first_digit(input) as u64 * 10 + find_last_digit(input) as u64
+
+    let input = input.lines().map(str::trim);
+    input
+        .map(|line| find_first_digit(line) as u64 * 10 + find_last_digit(line) as u64)
+        .sum()
 }
 
 fn main() {
