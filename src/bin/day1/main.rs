@@ -33,7 +33,8 @@ fn digit_value(digit: &str) -> u64 {
     }
 }
 
-fn part_2(#[allow(unused)] input: &str) -> u64 {
+#[allow(unused)]
+fn part_2_regex(#[allow(unused)] input: &str) -> u64 {
     let input = input.lines().map(str::trim);
     let digit_regex = Regex::new("one|two|three|four|five|six|seven|eight|nine|[0-9]").unwrap();
     input
@@ -47,6 +48,48 @@ fn part_2(#[allow(unused)] input: &str) -> u64 {
             tens * 10 + ones
         })
         .sum()
+}
+
+fn part_2(input: &str) -> u64 {
+    fn find_first_digit(input: &str) -> u8 {
+        if let b @ (b'1'..=b'9') = input.as_bytes()[0] {
+            b - b'0'
+        } else if let ("one", b, _, _) | ("two", _, b, _) | ("six", _, _, b) =
+            (&input[..3], 1, 2, 6)
+        {
+            b
+        } else if let ("four", b, _, _) | ("five", _, b, _) | ("nine", _, _, b) =
+            (&input[..4], 4, 5, 9)
+        {
+            b
+        } else if let ("three", b, _, _) | ("seven", _, b, _) | ("eight", _, _, b) =
+            (&input[..5], 3, 7, 8)
+        {
+            b
+        } else {
+            find_first_digit(&input[1..])
+        }
+    }
+    fn find_last_digit(input: &str) -> u8 {
+        if let b @ (b'1'..=b'9') = input.as_bytes().last().unwrap() {
+            b - b'0'
+        } else if let ("one", b, _, _) | ("two", _, b, _) | ("six", _, _, b) =
+            (&input[input.len() - 3..], 1, 2, 6)
+        {
+            b
+        } else if let ("four", b, _, _) | ("five", _, b, _) | ("nine", _, _, b) =
+            (&input[input.len() - 4..], 4, 5, 9)
+        {
+            b
+        } else if let ("three", b, _, _) | ("seven", _, b, _) | ("eight", _, _, b) =
+            (&input[input.len() - 5..], 3, 7, 8)
+        {
+            b
+        } else {
+            find_last_digit(&input[..input.len() - 1])
+        }
+    }
+    find_first_digit(input) as u64 * 10 + find_last_digit(input) as u64
 }
 
 fn main() {
