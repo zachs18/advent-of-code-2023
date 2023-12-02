@@ -10,11 +10,11 @@ use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
 
-fn part_1(#[allow(unused)] input: &str) -> u64 {
+fn part_1(input: &str) -> u64 {
     todo!()
 }
 
-fn part_2(#[allow(unused)] input: &str) -> u64 {
+fn part_2(input: &str) -> u64 {
     todo!()
 }
 
@@ -48,10 +48,10 @@ fn parse(input: &str) -> Vec<Thing> {
         .collect_vec()
 }
 
-fn part_1(#[allow(unused)] input: &Vec<Thing>) -> i64 {
+fn part_1(input: &Vec<Thing>) -> i64 {
     todo!()
 }
-fn part_2(#[allow(unused)] input: &Vec<Thing>) -> String {
+fn part_2(input: &Vec<Thing>) -> String {
     todo!()
 }
 

@@ -59,7 +59,7 @@ fn parse(input: &str) -> Vec<Game> {
         .collect_vec()
 }
 
-fn part_1(#[allow(unused)] games: &Vec<Game>) -> usize {
+fn part_1(games: &Vec<Game>) -> usize {
     let red_total = 12;
     let green_total = 13;
     let blue_total = 14;
@@ -75,7 +75,7 @@ fn part_1(#[allow(unused)] games: &Vec<Game>) -> usize {
         })
         .sum()
 }
-fn part_2(#[allow(unused)] games: &Vec<Game>) -> usize {
+fn part_2(games: &Vec<Game>) -> usize {
     games
         .iter()
         .map(|game| {

@@ -4,7 +4,7 @@ use aoc_driver::*;
 use itertools::Itertools;
 use regex::Regex;
 
-fn part_1(#[allow(unused)] input: &str) -> u64 {
+fn part_1(input: &str) -> u64 {
     input
         .lines()
         .map(|line| match line.trim() {
@@ -34,7 +34,7 @@ fn digit_value(digit: &str) -> u64 {
 }
 
 #[allow(unused)]
-fn part_2_regex(#[allow(unused)] input: &str) -> u64 {
+fn part_2_regex(input: &str) -> u64 {
     let input = input.lines().map(str::trim);
     let digit_regex = Regex::new("one|two|three|four|five|six|seven|eight|nine|[0-9]").unwrap();
     input
