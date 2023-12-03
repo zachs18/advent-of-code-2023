@@ -20,10 +20,11 @@ fn part_2(input: &str) -> u64 {
 
 fn main() {
     let session = std::fs::read_to_string(".session.txt").unwrap();
-    if let Err(error) = aoc_magic!(session.trim(), %%YEAR%%:%%DAY%%:2, part_2) {
+    let session = session.trim();
+    if let Err(error) = aoc_magic!(session, %%YEAR%%:%%DAY%%:2, part_2) {
         eprintln!("Part 2 failed: {error:?}");
     }
-    if let Err(error) = aoc_magic!(session.trim(), %%YEAR%%:%%DAY%%:1, part_1) {
+    if let Err(error) = aoc_magic!(session, %%YEAR%%:%%DAY%%:1, part_1) {
         eprintln!("Part 1 failed: {error:?}");
     }
 }

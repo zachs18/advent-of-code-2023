@@ -43,7 +43,7 @@ fn main() {
     };
 
     let mut cmd = std::process::Command::new("cargo")
-        .args(["run", "--bin", day.as_str()])
+        .args(["run", "--bin", day.as_str(), "--release"])
         .spawn()
         .expect("Failed to spawn day");
     let _status = cmd.wait().expect("Failed to run day");
