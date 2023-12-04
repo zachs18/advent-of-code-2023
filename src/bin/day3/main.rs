@@ -10,42 +10,31 @@ fn is_symbol(b: u8) -> bool {
 
 fn part_1(input: &str) -> u64 {
     let board = input.lines().map(str::trim).collect_vec();
+    let width = board[0].len();
+    let height = board.len();
     let mut part_number_sum = 0;
     let num_regex = Regex::new("[0-9]+").unwrap();
-    for row in 0..board.len() {
-        'numbers: for number in num_regex.find_iter(board[row]) {
+    for (row_idx, row) in board.iter().copied().enumerate() {
+        let row_bytes = row.as_bytes();
+        'numbers: for number in num_regex.find_iter(row) {
             let start = number.start();
+            let adjacent_start = start.saturating_sub(1);
             let end = number.end();
+            let adjacent_end = width.min(end + 1);
             let number = number.as_str().parse::<u64>().unwrap();
-            if let Some(prev) = board[row].as_bytes().get(start.wrapping_sub(1)) {
-                if is_symbol(*prev) {
-                    part_number_sum += number;
-                    continue 'numbers;
-                }
-            }
-            if let Some(next) = board[row].as_bytes().get(end) {
-                if is_symbol(*next) {
-                    part_number_sum += number;
-                    continue 'numbers;
-                }
-            }
-            if let Some(prevrow) = board.get(row.wrapping_sub(1)) {
-                if prevrow[start.saturating_sub(1)..end + (end != board[row].len()) as usize]
-                    .bytes()
-                    .any(is_symbol)
-                {
-                    part_number_sum += number;
-                    continue 'numbers;
-                }
-            }
-            if let Some(nextrow) = board.get(row + 1) {
-                if nextrow[start.saturating_sub(1)..end + (end != board[row].len()) as usize]
-                    .bytes()
-                    .any(is_symbol)
-                {
-                    part_number_sum += number;
-                    continue 'numbers;
-                }
+            if (start != 0 && is_symbol(row_bytes[start - 1]))
+                || (end != width && is_symbol(row_bytes[end]))
+                || (row_idx != 0
+                    && board[row_idx - 1][adjacent_start..adjacent_end]
+                        .bytes()
+                        .any(is_symbol))
+                || (row_idx != height - 1
+                    && board[row_idx + 1][adjacent_start..adjacent_end]
+                        .bytes()
+                        .any(is_symbol))
+            {
+                part_number_sum += number;
+                continue 'numbers;
             }
         }
     }
@@ -57,7 +46,7 @@ fn part_2(input: &str) -> u64 {
     let mut gear_ratio_sum = 0;
     let num_regex = Regex::new("[0-9]+").unwrap();
     for row in 0..board.len() {
-        'gears: for gear_idx in board[row]
+        for gear_idx in board[row]
             .bytes()
             .enumerate()
             .filter_map(|(idx, b)| (b == b'*').then_some(idx))
