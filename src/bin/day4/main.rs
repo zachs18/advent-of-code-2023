@@ -4,7 +4,6 @@ use aoc_driver::*;
 use itertools::Itertools;
 
 struct Card {
-    idx: usize,
     winning: Vec<u32>,
     have: Vec<u32>,
 }
@@ -38,9 +37,8 @@ fn parse(input: &str) -> Vec<Card> {
         .lines()
         .map(str::trim)
         .map(|line| {
-            let (idx, rest) = line["Card ".len()..].split_once(':').unwrap();
+            let (_card_and_idx, rest) = line.split_once(':').unwrap();
             let (winning, have) = rest.split_once('|').unwrap();
-            let idx = idx.trim().parse().unwrap();
             let mut winning = winning
                 .split_whitespace()
                 .map(|value| value.parse().unwrap())
@@ -51,7 +49,7 @@ fn parse(input: &str) -> Vec<Card> {
                 .map(|value| value.parse().unwrap())
                 .collect_vec();
             have.sort_unstable();
-            Card { idx, winning, have }
+            Card { winning, have }
         })
         .collect_vec()
 }
