@@ -54,6 +54,7 @@ dependencies = [
  "serde",
  "serde_json",
  "set-union",
+ "zachs18-stdx",
 ]
 
 [[package]]
@@ -898,3 +899,9 @@ checksum = "829846f3e3db426d4cee4510841b71a8e58aa2a76b1132579487ae430ccd9c7b"
 dependencies = [
  "memchr",
 ]
+
+[[package]]
+name = "zachs18-stdx"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6446ef8ef7bc657bcbbc0dcba95ab3895bfc147ff72f013b67eb801500bb00f4"

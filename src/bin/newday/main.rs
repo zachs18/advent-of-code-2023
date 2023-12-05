@@ -9,6 +9,7 @@ const DEFAULT_TEMPLATE: &str = r###"
 use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
+use zachs18_stdx::*;
 
 fn part_1(input: &str) -> u64 {
     todo!()
@@ -28,6 +29,13 @@ fn main() {
         eprintln!("Part 1 failed: {error:?}");
     }
 }
+
+#[test]
+fn example() {
+    let input = "example input";
+    assert_eq!(part_1(input), 42);
+    assert_eq!(part_2(input), 42);
+}
 "###;
 
 const PREPARSED_TEMPLATE: &str = r###"
@@ -35,6 +43,7 @@ const PREPARSED_TEMPLATE: &str = r###"
 use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
+use zachs18_stdx::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Thing {
@@ -49,10 +58,10 @@ fn parse(input: &str) -> Vec<Thing> {
         .collect_vec()
 }
 
-fn part_1(input: &Vec<Thing>) -> i64 {
+fn part_1(input: &Vec<Thing>) -> u64 {
     todo!()
 }
-fn part_2(input: &Vec<Thing>) -> String {
+fn part_2(input: &Vec<Thing>) -> u64 {
     todo!()
 }
 
@@ -76,7 +85,8 @@ fn example() {
     let mut both = PreParsed::new(parse, part_1, part_2);
     let part_1 = both.part_1();
     assert_eq!(part_1(input), &42);
-    (both.part_2())(&input);
+    let part_1 = both.part_1();
+    assert_eq!(part_2(input), &42);
 }
 
 "###;
