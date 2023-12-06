@@ -54,7 +54,6 @@ dependencies = [
  "scanfmt",
  "serde",
  "serde_json",
- "set-union",
  "zachs18-stdx",
 ]
 
@@ -676,13 +675,6 @@ dependencies = [
  "itoa",
  "ryu",
  "serde",
-]
-
-[[package]]
-name = "set-union"
-version = "0.1.0"
-dependencies = [
- "thiserror",
 ]
 
 [[package]]
