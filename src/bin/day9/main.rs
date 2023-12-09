@@ -9,8 +9,8 @@ fn predict_next(sequence: &[isize]) -> isize {
         return sequence[0];
     }
     let last = *sequence.last().unwrap();
-    let sequence = sequence.windows(2).map(|win| win[1] - win[0]).collect_vec();
-    predict_next(&sequence) + last
+    let diff_sequence = sequence.windows(2).map(|win| win[1] - win[0]).collect_vec();
+    last + predict_next(&diff_sequence)
 }
 
 fn predict_prev(sequence: &[isize]) -> isize {
@@ -18,8 +18,8 @@ fn predict_prev(sequence: &[isize]) -> isize {
         return sequence[0];
     }
     let first = *sequence.first().unwrap();
-    let sequence = sequence.windows(2).map(|win| win[1] - win[0]).collect_vec();
-    first - predict_prev(&sequence)
+    let diff_sequence = sequence.windows(2).map(|win| win[1] - win[0]).collect_vec();
+    first - predict_prev(&diff_sequence)
 }
 
 fn parse(input: &str) -> Vec<Vec<isize>> {
