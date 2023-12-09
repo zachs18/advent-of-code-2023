@@ -85,7 +85,7 @@ fn example() {
     let mut both = PreParsed::new(parse, part_1, part_2);
     let part_1 = both.part_1();
     assert_eq!(part_1(input), &42);
-    let part_1 = both.part_1();
+    let part_2 = both.part_2();
     assert_eq!(part_2(input), &42);
 }
 
