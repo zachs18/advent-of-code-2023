@@ -67,16 +67,17 @@ impl Pipe {
 /// Parses the map, calculates the maximum distance along the loop,
 /// and clears the non-loop elements from the map.
 fn parse_etc(input: &str) -> (Vec<Box<[Option<Pipe>]>>, usize) {
-    let data = input
+    let mut data: Vec<Box<[Option<Pipe>]>> = input
         .lines()
         .map(str::trim)
         .map(str::as_bytes)
+        .map(|row| row.iter().map(|&b| Pipe::from_u8(b)).collect())
         .collect_vec();
     let s_loc @ (s_row, s_col) = data
         .iter()
         .enumerate()
         .find_map(|(rowidx, row)| {
-            let colidx = row.iter().position(|&b| b == b'S')?;
+            let colidx = row.iter().position(|&b| b == Some(Pipe::Source))?;
             Some((rowidx, colidx))
         })
         .unwrap();
@@ -103,32 +104,14 @@ fn parse_etc(input: &str) -> (Vec<Box<[Option<Pipe>]>>, usize) {
         }
         let newdist = dist + 1;
         if newdist < distances[y2][x2] {
-            let cell = data[y2][x2];
-            let newdir = match (cell, dir) {
-                (b'-', Direction::West) => Direction::West,
-                (b'-', Direction::East) => Direction::East,
-                (b'|', Direction::North) => Direction::North,
-                (b'|', Direction::South) => Direction::South,
-                (b'7', Direction::North) => Direction::West,
-                (b'7', Direction::East) => Direction::South,
-                (b'L', Direction::South) => Direction::East,
-                (b'L', Direction::West) => Direction::North,
-                (b'J', Direction::South) => Direction::West,
-                (b'J', Direction::East) => Direction::North,
-                (b'F', Direction::North) => Direction::East,
-                (b'F', Direction::West) => Direction::South,
-                _ => continue,
+            let Some(newdir) = data[y2][x2].and_then(|cell| cell.go_through(dir)) else {
+                continue;
             };
 
             distances[y2][x2] = newdist;
             frontier.push_back(((y2, x2), newdir, newdist));
         }
     }
-
-    let mut data: Vec<Box<[Option<Pipe>]>> = data
-        .into_iter()
-        .map(|row| row.iter().map(|&b| Pipe::from_u8(b)).collect())
-        .collect_vec();
 
     let mut max_distance = 0;
 
@@ -210,7 +193,7 @@ fn part_2((map, _): &(Vec<Box<[Option<Pipe>]>>, usize)) -> usize {
                         crosses += 1;
                     }
                 }
-                Some(p) => unreachable!("{p:?} should not be in the map at this point"),
+                Some(Pipe::Source) => unreachable!("source should not be in the map at this point"),
             }
         }
     }
