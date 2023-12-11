@@ -43,6 +43,12 @@ fn parse(input: &str) -> Data {
     }
 }
 
+fn count_between(start: usize, end: usize, sorted_values: &[usize]) -> usize {
+    let start_idx = sorted_values.partition_point(|&value| value <= start);
+    let end_idx = sorted_values.partition_point(|&value| value < end);
+    end_idx - start_idx
+}
+
 fn distance(
     (y1, x1): (usize, usize),
     (y2, x2): (usize, usize),
@@ -54,8 +60,8 @@ fn distance(
     let (x1, x2) = (Ord::min(x1, x2), Ord::max(x1, x2));
     (y2 - y1)
         + (x2 - x1)
-        + empty_rows.iter().filter(|y| (y1..y2).contains(&y)).count() * (empty_space_multiplier - 1)
-        + empty_cols.iter().filter(|x| (x1..x2).contains(&x)).count() * (empty_space_multiplier - 1)
+        + count_between(y1, y2, empty_rows) * (empty_space_multiplier - 1)
+        + count_between(x1, x2, empty_cols) * (empty_space_multiplier - 1)
 }
 
 fn part_1(input: &Data) -> usize {
