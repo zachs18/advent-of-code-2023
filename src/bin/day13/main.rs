@@ -1,4 +1,6 @@
 #![allow(unused_imports)]
+use std::ops::Deref;
+
 use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
@@ -8,34 +10,72 @@ fn eq_rev<T: Eq>(s1: impl Iterator<Item = T>, s2: impl DoubleEndedIterator<Item 
     s1.eq(s2.rev())
 }
 
-fn solve(data: &[&[u8]]) -> usize {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct SplitLines {
+    v_splits: Vec<usize>,
+    h_splits: Vec<usize>,
+}
+
+impl SplitLines {
+    fn summarize(self) -> Option<usize> {
+        match (&self.v_splits[..], &self.h_splits[..]) {
+            ([], &[y]) => Some(100 * y),
+            (&[x], []) => Some(x),
+            _ => None,
+        }
+    }
+
+    fn but_not(mut self, part1: &Self) -> Self {
+        self.h_splits
+            .retain(|h_split| !part1.h_splits.contains(h_split));
+        self.v_splits
+            .retain(|v_split| !part1.v_splits.contains(v_split));
+        self
+    }
+}
+
+fn v_split(data: &[impl Deref<Target = [u8]>]) -> Vec<usize> {
+    let w = data[0].len();
+    (1..w)
+        .flat_map(|v_split| {
+            for row in data {
+                let len = std::cmp::min(v_split, w - v_split);
+                if !eq_rev(
+                    row[v_split - len..v_split].iter(),
+                    row[v_split..v_split + len].iter(),
+                ) {
+                    return None;
+                }
+            }
+            Some(v_split)
+        })
+        .collect_vec()
+}
+
+fn h_split(data: &[impl Deref<Target = [u8]>]) -> Vec<usize> {
     let h = data.len();
     let w = data[0].len();
-    'v_split: for v_split in 1..w {
-        for &row in data {
-            let len = std::cmp::min(v_split, w - v_split);
-            if !eq_rev(
-                row[v_split - len..v_split].iter(),
-                row[v_split..v_split + len].iter(),
-            ) {
-                continue 'v_split;
+    (1..h)
+        .flat_map(|h_split| {
+            for x in 0..w {
+                let len = std::cmp::min(h_split, h - h_split);
+                if !eq_rev(
+                    (h_split - len..h_split).map(|y| data[y][x]),
+                    (h_split..h_split + len).map(|y| data[y][x]),
+                ) {
+                    return None;
+                }
             }
-        }
-        return v_split;
+            Some(h_split)
+        })
+        .collect_vec()
+}
+
+fn solve(data: &[impl Deref<Target = [u8]>]) -> SplitLines {
+    SplitLines {
+        v_splits: v_split(data),
+        h_splits: h_split(data),
     }
-    'h_split: for h_split in 1..h {
-        for x in 0..w {
-            let len = std::cmp::min(h_split, h - h_split);
-            if !eq_rev(
-                (h_split - len..h_split).map(|y| data[y][x]),
-                (h_split..h_split + len).map(|y| data[y][x]),
-            ) {
-                continue 'h_split;
-            }
-        }
-        return 100 * h_split;
-    }
-    unreachable!()
 }
 
 fn part_1(input: &str) -> usize {
@@ -45,11 +85,47 @@ fn part_1(input: &str) -> usize {
         .map(str::as_bytes)
         .collect_vec();
     let data = data.split(|line| line.is_empty()).collect_vec();
-    data.iter().map(|pattern| solve(&pattern)).sum()
+    data.iter()
+        .map(|pattern| solve(pattern).summarize().unwrap())
+        .sum()
 }
 
-fn part_2(input: &str) -> u64 {
-    todo!()
+fn part_2(input: &str) -> usize {
+    let data = input
+        .lines()
+        .map(str::trim)
+        .map(str::as_bytes)
+        .collect_vec();
+    let data = data.split(|line| line.is_empty()).collect_vec();
+    data.iter()
+        .map(|pattern| {
+            let w = pattern[0].len();
+            let h = pattern.len();
+            let part1 = solve(pattern);
+
+            let mut pattern: Vec<Vec<u8>> = pattern.iter().copied().map(Vec::from).collect_vec();
+            let invert = |n: u8| -> u8 {
+                match n {
+                    b'#' => b'.',
+                    _ => b'#',
+                }
+            };
+
+            for y in 0..h {
+                for x in 0..w {
+                    pattern[y][x] = invert(pattern[y][x]);
+                    let splits = solve(&pattern[..]);
+                    if splits != part1 {
+                        if let Some(val) = splits.but_not(&part1).summarize() {
+                            return val;
+                        }
+                    }
+                    pattern[y][x] = invert(pattern[y][x]);
+                }
+            }
+            unreachable!()
+        })
+        .sum()
 }
 
 fn main() {
@@ -81,5 +157,6 @@ fn example() {
 ..##..###
 #....#..#";
     assert_eq!(part_1(input), 405);
+    dbg!();
     assert_eq!(part_2(input), 400);
 }
