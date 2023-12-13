@@ -59,7 +59,9 @@ dependencies = [
 
 [[package]]
 name = "aoc_driver"
-version = "0.3.5"
+version = "0.3.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "70a15bef9dd5bbd310de970293148c4914cd6ae78f7e308eb68ca2afc7bc1099"
 dependencies = [
  "chrono",
  "serde",

@@ -28,10 +28,10 @@ rayon = "1.8.0"
 
 [dependencies.aoc_driver]
 features = ["local_cache"]
-# version = "0.3.3"
+version = "0.3.6"
 # git = "https://github.com/zachs18/aoc_driver/"
 # branch = "local_cache"
-path = "../../rust/aoc_driver"
+# path = "../../rust/aoc_driver"
 
 [profile.release]
 overflow-checks = true
