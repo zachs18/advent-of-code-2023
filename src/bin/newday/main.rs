@@ -11,11 +11,11 @@ use aoc_driver::*;
 use itertools::Itertools;
 use zachs18_stdx::*;
 
-fn part_1(input: &str) -> u64 {
+fn part_1(input: &str) -> usize {
     todo!()
 }
 
-fn part_2(input: &str) -> u64 {
+fn part_2(input: &str) -> usize {
     todo!()
 }
 
@@ -58,10 +58,10 @@ fn parse(input: &str) -> Vec<Thing> {
         .collect_vec()
 }
 
-fn part_1(input: &Vec<Thing>) -> u64 {
+fn part_1(input: &Vec<Thing>) -> usize {
     todo!()
 }
-fn part_2(input: &Vec<Thing>) -> u64 {
+fn part_2(input: &Vec<Thing>) -> usize {
     todo!()
 }
 
