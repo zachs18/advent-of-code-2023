@@ -23,6 +23,7 @@ bytemuck = { version = "1.12.3", features = ["extern_crate_std", "min_const_gene
 enumflags2 = { version = "0.7.5", features = ["std"] }
 zachs18-stdx = "0.1.1"
 rayon = "1.8.0"
+indexmap = "2.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

@@ -43,6 +43,7 @@ dependencies = [
  "enumflags2",
  "float-ord",
  "generic-cursors",
+ "indexmap",
  "itertools",
  "num-bigint",
  "num-integer",
