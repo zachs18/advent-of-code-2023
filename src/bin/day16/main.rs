@@ -77,7 +77,7 @@ fn step_beams(
     new_beams
 }
 
-fn solve_starting_at(map: &[&[u8]], y: usize, x: usize, dir: Direction) -> usize {
+fn reachable_starting_at(map: &[&[u8]], y: usize, x: usize, dir: Direction) -> usize {
     let mut seen: HashMap<(usize, usize), BTreeSet<Direction>> = HashMap::new();
     let mut beams = vec![(y, x, dir)];
 
@@ -88,17 +88,7 @@ fn solve_starting_at(map: &[&[u8]], y: usize, x: usize, dir: Direction) -> usize
     seen.len()
 }
 
-fn part_1(input: &str) -> usize {
-    let map = input
-        .lines()
-        .map(str::trim)
-        .map(str::as_bytes)
-        .collect_vec();
-
-    solve_starting_at(&map, 0, 0, Direction::East)
-}
-
-fn part_2(input: &str) -> usize {
+fn solve(input: &str) -> (usize, usize) {
     let map = input
         .lines()
         .map(str::trim)
@@ -106,27 +96,32 @@ fn part_2(input: &str) -> usize {
         .collect_vec();
     let h = map.len();
     let w = map[0].len();
-    (0..h)
-        .map(|y| {
-            let east_start_count = solve_starting_at(&map, y, 0, Direction::East);
-            let west_start_count = solve_starting_at(&map, y, w - 1, Direction::West);
-            Ord::max(east_start_count, west_start_count)
-        })
-        .chain((0..w).map(|x| {
-            let south_start_count = solve_starting_at(&map, 0, x, Direction::South);
-            let north_start_count = solve_starting_at(&map, h - 1, x, Direction::North);
-            Ord::max(south_start_count, north_start_count)
-        }))
+    let mut easts = (0..h)
+        .map(|y| reachable_starting_at(&map, y, 0, Direction::East))
+        .peekable();
+    let wests = (0..h).map(|y| reachable_starting_at(&map, y, w - 1, Direction::West));
+    let souths = (0..w).map(|x| reachable_starting_at(&map, 0, x, Direction::South));
+    let norths = (0..w).map(|x| reachable_starting_at(&map, h - 1, x, Direction::North));
+
+    let part_1 = *easts.peek().unwrap();
+    let part_2 = easts
+        .chain(wests)
+        .chain(souths)
+        .chain(norths)
         .max()
-        .unwrap()
+        .unwrap();
+    (part_1, part_2)
 }
 
 fn main() {
     let session = std::fs::read_to_string(".session.txt").unwrap();
-    let session = session.trim();
+    let session = session.trim(); // SingleFunction
+    let mut both = SingleFunction::new(solve);
+    let part_2 = both.part_2();
     if let Err(error) = aoc_magic!(session, 2023:16:2, part_2) {
         eprintln!("Part 2 failed: {error:?}");
     }
+    let part_1 = both.part_1();
     if let Err(error) = aoc_magic!(session, 2023:16:1, part_1) {
         eprintln!("Part 1 failed: {error:?}");
     }
@@ -144,6 +139,7 @@ fn example() {
 .-.-/..|..
 .|....-|.\\
 ..//.|....";
-    assert_eq!(part_1(input), 46);
-    assert_eq!(part_2(input), 51);
+    let mut both = SingleFunction::new(solve);
+    assert_eq!(both.part_1()(input), &46);
+    assert_eq!(both.part_2()(input), &51);
 }
