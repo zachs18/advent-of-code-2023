@@ -27,70 +27,50 @@ fn step_beams(
             // already seen
             continue;
         }
+        let north = |new_beams: &mut Vec<_>| {
+            if y > 0 {
+                new_beams.push((y - 1, x, Direction::North));
+            }
+        };
+        let south = |new_beams: &mut Vec<_>| {
+            if y + 1 < h {
+                new_beams.push((y + 1, x, Direction::South));
+            }
+        };
+        let east = |new_beams: &mut Vec<_>| {
+            if x + 1 < w {
+                new_beams.push((y, x + 1, Direction::East));
+            }
+        };
+        let west = |new_beams: &mut Vec<_>| {
+            if x > 0 {
+                new_beams.push((y, x - 1, Direction::West));
+            }
+        };
         match (map[y][x], dir) {
             (0_u8..=44_u8, _)
             | (48_u8..=91_u8, _)
             | (93_u8..=123_u8, _)
             | (125_u8..=u8::MAX, _) => unreachable!(),
             // pass-throughs
-            (b'.' | b'-', Direction::East) => {
-                if x + 1 < w {
-                    new_beams.push((y, x + 1, dir));
-                }
-            }
-            (b'.' | b'-', Direction::West) => {
-                if x > 0 {
-                    new_beams.push((y, x - 1, dir));
-                }
-            }
-            (b'.' | b'|', Direction::South) => {
-                if y + 1 < h {
-                    new_beams.push((y + 1, x, dir));
-                }
-            }
-            (b'.' | b'|', Direction::North) => {
-                if y > 0 {
-                    new_beams.push((y - 1, x, dir));
-                }
-            }
+            (b'.' | b'-', Direction::East) => east(&mut new_beams),
+            (b'.' | b'-', Direction::West) => west(&mut new_beams),
+            (b'.' | b'|', Direction::South) => south(&mut new_beams),
+            (b'.' | b'|', Direction::North) => north(&mut new_beams),
             // mirrors EW
-            (b'/', Direction::East) | (b'\\', Direction::West) => {
-                if y > 0 {
-                    new_beams.push((y - 1, x, Direction::North));
-                }
-            }
-            (b'/', Direction::West) | (b'\\', Direction::East) => {
-                if y + 1 < h {
-                    new_beams.push((y + 1, x, Direction::South));
-                }
-            }
+            (b'/', Direction::East) | (b'\\', Direction::West) => north(&mut new_beams),
+            (b'/', Direction::West) | (b'\\', Direction::East) => south(&mut new_beams),
             // mirrors NS
-            (b'/', Direction::North) | (b'\\', Direction::South) => {
-                if x + 1 < w {
-                    new_beams.push((y, x + 1, Direction::East));
-                }
-            }
-            (b'/', Direction::South) | (b'\\', Direction::North) => {
-                if x > 0 {
-                    new_beams.push((y, x - 1, Direction::West));
-                }
-            }
+            (b'/', Direction::North) | (b'\\', Direction::South) => east(&mut new_beams),
+            (b'/', Direction::South) | (b'\\', Direction::North) => west(&mut new_beams),
             // splits
             (b'|', Direction::East | Direction::West) => {
-                if y > 0 {
-                    new_beams.push((y - 1, x, Direction::North));
-                }
-                if y + 1 < h {
-                    new_beams.push((y + 1, x, Direction::South));
-                }
+                north(&mut new_beams);
+                south(&mut new_beams);
             }
             (b'-', Direction::North | Direction::South) => {
-                if x + 1 < w {
-                    new_beams.push((y, x + 1, Direction::East));
-                }
-                if x > 0 {
-                    new_beams.push((y, x - 1, Direction::West));
-                }
+                east(&mut new_beams);
+                west(&mut new_beams);
             }
         }
     }
