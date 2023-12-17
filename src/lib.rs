@@ -290,6 +290,7 @@ pub fn common_item3<'a, T: PartialOrd>(a: &'a [T], b: &[T], c: &[T]) -> Option<&
 }
 
 pub struct SingleFunction<F, A> {
+    #[allow(clippy::type_complexity)]
     inner: Option<Either<F, std::thread::Result<(A, Option<A>)>>>,
 }
 
@@ -309,8 +310,7 @@ where
             let output = match self.inner.take().unwrap() {
                 Either::Left(runner) => {
                     let output = std::panic::catch_unwind(|| runner(input));
-                    let output = output.map(|(a, b)| (a, b.into()));
-                    output
+                    output.map(|(a, b)| (a, b.into()))
                 }
                 Either::Right(output) => output,
             };
@@ -326,8 +326,7 @@ where
             let output = match self.inner.take().unwrap() {
                 Either::Left(runner) => {
                     let output = std::panic::catch_unwind(|| runner(input));
-                    let output = output.map(|(a, b)| (a, b.into()));
-                    output
+                    output.map(|(a, b)| (a, b.into()))
                 }
                 Either::Right(output) => output,
             };

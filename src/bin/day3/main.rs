@@ -1,5 +1,3 @@
-#![allow(unused_imports)]
-use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
 use regex::Regex;
@@ -55,7 +53,7 @@ fn part_2(input: &str) -> u64 {
                 .get(row.saturating_sub(1))
                 .into_iter()
                 .flat_map(|line| num_regex.find_iter(line));
-            let this_line = num_regex.find_iter(&board[row]);
+            let this_line = num_regex.find_iter(board[row]);
             let below = board
                 .get(row + 1)
                 .into_iter()

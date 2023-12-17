@@ -1,11 +1,8 @@
-#![allow(unused_imports)]
 use std::collections::HashMap;
 
-use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
 use num_integer::Integer;
-use zachs18_stdx::*;
 
 #[derive(Debug, Clone, Copy)]
 #[repr(u8)]
@@ -57,14 +54,14 @@ fn part_2(input: &str) -> usize {
     let starting_nodes = map
         .iter()
         .flat_map(|(&src, &[dst1, dst2])| [src, dst1, dst2])
-        .filter(|node| node.ends_with("A"))
+        .filter(|node| node.ends_with('A'))
         .collect_vec();
     let lengths = starting_nodes
         .iter()
         .copied()
         .map(|mut node| {
             for (idx, direction) in directions.iter().copied().cycle().enumerate() {
-                if node.ends_with("Z") {
+                if node.ends_with('Z') {
                     return idx;
                 }
                 node = map[node][direction as usize]

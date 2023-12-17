@@ -1,19 +1,15 @@
-#![allow(unused_imports)]
-use aoc_2023::*;
 use aoc_driver::*;
-use itertools::Itertools;
 use regex::Regex;
 
 fn part_1(input: &str) -> u64 {
     input
         .lines()
-        .map(|line| match line.trim() {
-            line => {
-                let mut bytes = line.bytes().filter(|c| (b'0'..=b'9').contains(c));
-                let tens = bytes.next().unwrap();
-                let ones = bytes.next_back().unwrap_or(tens);
-                u64::from((tens - b'0') * 10 + ones - b'0')
-            }
+        .map(str::trim)
+        .map(|line| {
+            let mut bytes = line.bytes().filter(|c| c.is_ascii_digit());
+            let tens = bytes.next().unwrap();
+            let ones = bytes.next_back().unwrap_or(tens);
+            u64::from((tens - b'0') * 10 + ones - b'0')
         })
         .sum()
 }
@@ -134,6 +130,7 @@ zoneight234
 
 #[test]
 fn regex() {
+    use itertools::Itertools;
     let digit_regex = Regex::new("one|two|three|four|five|six|seven|eight|nine|[0-9]").unwrap();
     let s = "one43twothreefourfivesixseveneightnine023451223639";
     let matches = digit_regex.find_iter(s).collect_vec();

@@ -1,10 +1,7 @@
-#![allow(unused_imports)]
 use std::ops::Deref;
 
-use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 fn eq_rev<T: Eq>(s1: impl Iterator<Item = T>, s2: impl DoubleEndedIterator<Item = T>) -> bool {
     s1.eq(s2.rev())

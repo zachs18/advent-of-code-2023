@@ -1,10 +1,8 @@
-#![allow(unused_imports)]
-use std::{collections::VecDeque, ops::ControlFlow};
+use std::collections::VecDeque;
 
 use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Direction {

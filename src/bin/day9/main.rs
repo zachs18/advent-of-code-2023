@@ -1,8 +1,6 @@
-#![allow(unused_imports)]
 use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 fn predict_next(sequence: &[isize]) -> isize {
     if (1..sequence.len()).all(|idx| sequence[idx] == sequence[0]) {

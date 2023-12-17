@@ -1,4 +1,3 @@
-#![allow(unused_imports)]
 use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;

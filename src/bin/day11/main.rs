@@ -1,8 +1,6 @@
-#![allow(unused_imports)]
 use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 struct Data {
     galaxy_locations: Vec<(usize, usize)>,
@@ -76,8 +74,8 @@ fn part_1(input: &Data) -> usize {
             acc += distance(
                 galaxy_locations[i],
                 galaxy_locations[j],
-                &empty_rows,
-                &empty_cols,
+                empty_rows,
+                empty_cols,
                 2,
             );
         }
@@ -97,8 +95,8 @@ fn part_2(input: &Data) -> usize {
             acc += distance(
                 galaxy_locations[i],
                 galaxy_locations[j],
-                &empty_rows,
-                &empty_cols,
+                empty_rows,
+                empty_cols,
                 1_000_000,
             );
         }

@@ -1,11 +1,9 @@
-#![allow(unused_imports)]
-use std::{cmp::Ordering, ops::Range, time::Instant};
+#![allow(clippy::let_and_return)]
+use std::{cmp::Ordering, ops::Range};
 
-use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
-use zachs18_stdx::*;
 
 #[derive(Default, Debug)]
 struct RangeMapElement {

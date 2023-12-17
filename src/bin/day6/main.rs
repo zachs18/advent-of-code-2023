@@ -1,8 +1,5 @@
-#![allow(unused_imports)]
-use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 /// TODO: use quadratic instead
 fn number_of_ways_to_win(race_time: u64, race_distance: u64) -> usize {

@@ -1,10 +1,8 @@
-#![allow(unused_imports)]
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap};
 
 use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Direction {
@@ -82,7 +80,7 @@ fn reachable_starting_at(map: &[&[u8]], y: usize, x: usize, dir: Direction) -> u
     let mut beams = vec![(y, x, dir)];
 
     while !beams.is_empty() {
-        beams = step_beams(&map, beams, &mut seen);
+        beams = step_beams(map, beams, &mut seen);
     }
 
     seen.len()

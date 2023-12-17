@@ -1,11 +1,6 @@
-#![allow(unused_imports)]
-use std::collections::HashMap;
-
-use aoc_2023::*;
 use aoc_driver::*;
 use indexmap::IndexMap;
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 fn hash(s: &str) -> usize {
     s.bytes().fold(0, |mut acc, byte| {

@@ -137,20 +137,20 @@ fn main() {
 
     std::fs::DirBuilder::new()
         .recursive(true)
-        .create(&format!("./src/bin/day{new_day}"))
+        .create(format!("./src/bin/day{new_day}"))
         .expect("failed to create new day folder");
     let real_main = std::fs::File::options()
         .write(true)
         .create_new(true)
-        .open(&format!("./src/bin/day{new_day}/main.rs"));
+        .open(format!("./src/bin/day{new_day}/main.rs"));
     let default_main = std::fs::File::options()
         .write(true)
         .create_new(true)
-        .open(&format!("./src/bin/day{new_day}/default_main.rs"));
+        .open(format!("./src/bin/day{new_day}/default_main.rs"));
     let preparsed_main = std::fs::File::options()
         .write(true)
         .create_new(true)
-        .open(&format!("./src/bin/day{new_day}/preparsed_main.rs"));
+        .open(format!("./src/bin/day{new_day}/preparsed_main.rs"));
 
     let default_formatted = DEFAULT_TEMPLATE
         .replace("%%YEAR%%", &format!("{}", YEAR))

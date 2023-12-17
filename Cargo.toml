@@ -36,3 +36,11 @@ version = "0.3.6"
 
 [profile.release]
 overflow-checks = true
+
+[lints.clippy]
+# PreParsed requires the solution functions to take exactly a reference the parsed type,
+# and when the parsed type is Vec, clippy complains that the functions could take a slice reference.
+ptr_arg = "allow"
+# When the length of the slice is different from the length of the range,
+# this can change the semantics of the loop, and/or decrease readability.
+needless_range_loop = "allow"

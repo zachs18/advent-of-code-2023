@@ -1,4 +1,3 @@
-#![allow(unused_imports)]
 use std::collections::HashMap;
 
 use aoc_2023::*;
