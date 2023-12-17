@@ -1,15 +1,16 @@
-#![allow(unused_imports)]
-use std::{
-    cmp::Reverse,
-    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
-    f32::consts::E,
-    rc::Rc,
-};
+use std::collections::{BinaryHeap, HashMap};
 
 use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
-use zachs18_stdx::*;
+
+fn parse(input: &str) -> Vec<Vec<u8>> {
+    input
+        .lines()
+        .map(str::trim)
+        .map(|line| line.bytes().map(|b| b - b'0').collect_vec())
+        .collect_vec()
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Direction {
@@ -58,9 +59,9 @@ impl Ord for State {
 
 impl State {
     fn and_move(mut self, map: &[Vec<u8>], direction: Direction) -> Option<Self> {
-        if self.last_move_direction == direction.opposite() {
-            return None;
-        } else if self.last_move_direction == direction && self.last_move_count >= 3 {
+        if self.last_move_direction == direction.opposite()
+            || (self.last_move_direction == direction && self.last_move_count >= 3)
+        {
             return None;
         }
         let h = map.len() as u8;
@@ -87,11 +88,10 @@ impl State {
     }
 
     fn and_ultra_move(mut self, map: &[Vec<u8>], direction: Direction) -> Option<Self> {
-        if self.last_move_direction == direction.opposite() {
-            return None;
-        } else if self.last_move_direction == direction && self.last_move_count >= 10 {
-            return None;
-        } else if self.last_move_direction != direction && self.last_move_count < 4 {
+        if self.last_move_direction == direction.opposite()
+            || (self.last_move_direction == direction && self.last_move_count >= 10)
+            || (self.last_move_direction != direction && self.last_move_count < 4)
+        {
             return None;
         }
         let h = map.len() as u8;
@@ -118,12 +118,7 @@ impl State {
     }
 }
 
-fn part_1(input: &str) -> usize {
-    let map = input
-        .lines()
-        .map(str::trim)
-        .map(|line| line.bytes().map(|b| b - b'0').collect_vec())
-        .collect_vec();
+fn part_1(map: &Vec<Vec<u8>>) -> usize {
     let h = map.len();
     let w = map[0].len();
 
@@ -167,7 +162,7 @@ fn part_1(input: &str) -> usize {
             Direction::South,
             Direction::West,
         ] {
-            if let Some(state) = state.and_move(&map, direction) {
+            if let Some(state) = state.and_move(map, direction) {
                 queue.push(state);
             }
         }
@@ -176,12 +171,7 @@ fn part_1(input: &str) -> usize {
     todo!()
 }
 
-fn part_2(input: &str) -> usize {
-    let map = input
-        .lines()
-        .map(str::trim)
-        .map(|line| line.bytes().map(|b| b - b'0').collect_vec())
-        .collect_vec();
+fn part_2(map: &Vec<Vec<u8>>) -> usize {
     let h = map.len();
     let w = map[0].len();
 
@@ -225,7 +215,7 @@ fn part_2(input: &str) -> usize {
             Direction::South,
             Direction::West,
         ] {
-            if let Some(state) = state.and_ultra_move(&map, direction) {
+            if let Some(state) = state.and_ultra_move(map, direction) {
                 queue.push(state);
             }
         }
@@ -237,9 +227,12 @@ fn part_2(input: &str) -> usize {
 fn main() {
     let session = std::fs::read_to_string(".session.txt").unwrap();
     let session = session.trim();
+    let mut both = PreParsed::new(parse, part_1, part_2);
+    let part_2 = both.part_2();
     if let Err(error) = aoc_magic!(session, 2023:17:2, part_2) {
         eprintln!("Part 2 failed: {error:?}");
     }
+    let part_1 = both.part_1();
     if let Err(error) = aoc_magic!(session, 2023:17:1, part_1) {
         eprintln!("Part 1 failed: {error:?}");
     }
@@ -260,13 +253,14 @@ fn example() {
 1224686865563
 2546548887735
 4322674655533";
-    assert_eq!(part_1(input), 102);
-    assert_eq!(part_2(input), 94);
+    let input = parse(input);
+    assert_eq!(part_1(&input), 102);
+    assert_eq!(part_2(&input), 94);
 
     let input = "111111111111
 999999999991
 999999999991
 999999999991
 999999999991";
-    assert_eq!(part_2(input), 71);
+    assert_eq!(part_2(&parse(input)), 71);
 }
