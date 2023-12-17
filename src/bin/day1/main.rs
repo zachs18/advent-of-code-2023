@@ -52,18 +52,19 @@ fn part_2_regex(input: &str) -> u64 {
 
 fn part_2(input: &str) -> u64 {
     fn find_first_digit(input: &str) -> u8 {
+        let slice_first_or_empty = |n: usize| input.get(..n).unwrap_or("");
         if let b @ (b'1'..=b'9') = input.as_bytes()[0] {
             b - b'0'
         } else if let ("one", b, _, _) | ("two", _, b, _) | ("six", _, _, b) =
-            (&input[..3], 1, 2, 6)
+            (slice_first_or_empty(3), 1, 2, 6)
         {
             b
         } else if let ("four", b, _, _) | ("five", _, b, _) | ("nine", _, _, b) =
-            (&input[..4], 4, 5, 9)
+            (slice_first_or_empty(4), 4, 5, 9)
         {
             b
         } else if let ("three", b, _, _) | ("seven", _, b, _) | ("eight", _, _, b) =
-            (&input[..5], 3, 7, 8)
+            (slice_first_or_empty(5), 3, 7, 8)
         {
             b
         } else {
@@ -71,18 +72,25 @@ fn part_2(input: &str) -> u64 {
         }
     }
     fn find_last_digit(input: &str) -> u8 {
+        let slice_last_or_empty = |n: usize| {
+            input
+                .len()
+                .checked_sub(n)
+                .and_then(|start| input.get(start..))
+                .unwrap_or("")
+        };
         if let b @ (b'1'..=b'9') = input.as_bytes().last().unwrap() {
             b - b'0'
         } else if let ("one", b, _, _) | ("two", _, b, _) | ("six", _, _, b) =
-            (&input[input.len() - 3..], 1, 2, 6)
+            (slice_last_or_empty(3), 1, 2, 6)
         {
             b
         } else if let ("four", b, _, _) | ("five", _, b, _) | ("nine", _, _, b) =
-            (&input[input.len() - 4..], 4, 5, 9)
+            (slice_last_or_empty(4), 4, 5, 9)
         {
             b
         } else if let ("three", b, _, _) | ("seven", _, b, _) | ("eight", _, _, b) =
-            (&input[input.len() - 5..], 3, 7, 8)
+            (slice_last_or_empty(5), 3, 7, 8)
         {
             b
         } else {
