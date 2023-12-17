@@ -85,6 +85,37 @@ impl State {
         self.position = (y, x);
         Some(self)
     }
+
+    fn and_ultra_move(mut self, map: &[Vec<u8>], direction: Direction) -> Option<Self> {
+        if self.last_move_direction == direction.opposite() {
+            return None;
+        } else if self.last_move_direction == direction && self.last_move_count >= 10 {
+            return None;
+        } else if self.last_move_direction != direction && self.last_move_count < 4 {
+            return None;
+        }
+        let h = map.len() as u8;
+        let w = map[0].len() as u8;
+        let (y, x) = self.position;
+        let (y, x) = match direction {
+            Direction::North => (y.checked_sub(1)?, x),
+            Direction::East => (y, x + 1),
+            Direction::South => (y + 1, x),
+            Direction::West => (y, x.checked_sub(1)?),
+        };
+        if y >= h || x >= w {
+            return None;
+        }
+        if self.last_move_direction == direction {
+            self.last_move_count += 1;
+        } else {
+            self.last_move_direction = direction;
+            self.last_move_count = 1;
+        }
+        self.heat_loss += map[y as usize][x as usize] as usize;
+        self.position = (y, x);
+        Some(self)
+    }
 }
 
 fn part_1(input: &str) -> usize {
@@ -129,13 +160,7 @@ fn part_1(input: &str) -> usize {
                 state.heat_loss,
             );
         }
-        static mut COUNTER: u32 = 0;
-        unsafe {
-            if COUNTER % 0x100000 == 0 {
-                dbg!(state);
-            }
-            COUNTER = COUNTER.wrapping_add(1);
-        }
+
         for direction in [
             Direction::North,
             Direction::East,
@@ -152,6 +177,60 @@ fn part_1(input: &str) -> usize {
 }
 
 fn part_2(input: &str) -> usize {
+    let map = input
+        .lines()
+        .map(str::trim)
+        .map(|line| line.bytes().map(|b| b - b'0').collect_vec())
+        .collect_vec();
+    let h = map.len();
+    let w = map[0].len();
+
+    let state = State {
+        heat_loss: 0,
+        position: (0, 0),
+        last_move_direction: Direction::East,
+        last_move_count: 0,
+    };
+
+    let mut queue = BinaryHeap::from([state]);
+    // (y, x, dir, dircount)
+    let mut best_heat_loss: HashMap<((u8, u8), Direction, u8), usize> = HashMap::new();
+    while let Some(state) = queue.pop() {
+        if state.position == ((h - 1) as u8, (w - 1) as u8) && state.last_move_count >= 4 {
+            return state.heat_loss;
+        } else if let Some(best_heat_loss) = best_heat_loss.get_mut(&(
+            state.position,
+            state.last_move_direction,
+            state.last_move_count,
+        )) {
+            if state.heat_loss < *best_heat_loss {
+                *best_heat_loss = state.heat_loss;
+            } else {
+                continue;
+            }
+        } else {
+            best_heat_loss.insert(
+                (
+                    state.position,
+                    state.last_move_direction,
+                    state.last_move_count,
+                ),
+                state.heat_loss,
+            );
+        }
+
+        for direction in [
+            Direction::North,
+            Direction::East,
+            Direction::South,
+            Direction::West,
+        ] {
+            if let Some(state) = state.and_ultra_move(&map, direction) {
+                queue.push(state);
+            }
+        }
+    }
+
     todo!()
 }
 
@@ -182,5 +261,12 @@ fn example() {
 2546548887735
 4322674655533";
     assert_eq!(part_1(input), 102);
-    // assert_eq!(part_2(input), 42);
+    assert_eq!(part_2(input), 94);
+
+    let input = "111111111111
+999999999991
+999999999991
+999999999991
+999999999991";
+    assert_eq!(part_2(input), 71);
 }
