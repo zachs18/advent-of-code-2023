@@ -1,7 +1,7 @@
 #![allow(unused_imports)]
 use std::{
     cmp::Reverse,
-    collections::{BinaryHeap, HashSet},
+    collections::{BinaryHeap, HashMap, HashSet, VecDeque},
     f32::consts::E,
     rc::Rc,
 };
@@ -31,19 +31,41 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct Path {
-    path: Vec<(u8, u8)>,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct State {
     heat_loss: usize,
-    last_direction: Direction,
-    consecutive_moves: usize,
+    position: (u8, u8),
+    last_move_direction: Direction,
+    last_move_count: u8,
 }
 
-impl Path {
-    fn and_move(&self, map: &[Vec<u8>], direction: Direction) -> Option<Self> {
+impl PartialOrd for State {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for State {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.heat_loss
+            .cmp(&other.heat_loss)
+            .reverse()
+            .then_with(|| self.position.cmp(&other.position))
+            .then_with(|| self.last_move_direction.cmp(&other.last_move_direction))
+            .then_with(|| self.last_move_count.cmp(&other.last_move_count))
+    }
+}
+
+impl State {
+    fn and_move(mut self, map: &[Vec<u8>], direction: Direction) -> Option<Self> {
+        if self.last_move_direction == direction.opposite() {
+            return None;
+        } else if self.last_move_direction == direction && self.last_move_count >= 3 {
+            return None;
+        }
         let h = map.len() as u8;
         let w = map[0].len() as u8;
-        let (y, x) = self.path.last().copied().unwrap();
+        let (y, x) = self.position;
         let (y, x) = match direction {
             Direction::North => (y.checked_sub(1)?, x),
             Direction::East => (y, x + 1),
@@ -53,56 +75,17 @@ impl Path {
         if y >= h || x >= w {
             return None;
         }
-        //  else if self.path.contains(&(y, x)) {
-        //     // note: this implements "cannot reverse" logic
-        //     return None;
-        // }
-
-        ((self.last_direction != direction || self.consecutive_moves < 3)
-            && self.last_direction != direction.opposite())
-        .then(|| {
-            let mut path = self.clone();
-            if self.last_direction != direction {
-                path.last_direction = direction;
-                path.consecutive_moves = 1
-            } else {
-                path.consecutive_moves += 1;
-            }
-            path.path.push((y, x));
-            path.heat_loss += map[y as usize][x as usize] as usize;
-            path
-        })
-    }
-
-    fn print(&self, map: &[Vec<u8>]) {
-        let h = map.len();
-        let w = map[0].len();
-        for y in 0..h {
-            for x in 0..w {
-                let path_idx = self.path.iter().position(|&pos| pos == (y as u8, x as u8));
-                match path_idx {
-                    Some(path_idx) => match self.path.get(path_idx.saturating_sub(1)..path_idx + 1)
-                    {
-                        Some(&[(y1, x1), (y2, x2)]) => {
-                            match (y2 as i32 - y1 as i32, x2 as i32 - x1 as i32) {
-                                (-1, 0) => print!("^"),
-                                (1, 0) => print!("v"),
-                                (0, -1) => print!("<"),
-                                (0, 1) => print!(">"),
-                                _ => unreachable!(),
-                            }
-                        }
-                        _ => print!("X"),
-                    },
-                    None => print!("{}", map[y][x]),
-                }
-            }
-            println!();
+        if self.last_move_direction == direction {
+            self.last_move_count += 1;
+        } else {
+            self.last_move_direction = direction;
+            self.last_move_count = 1;
         }
+        self.heat_loss += map[y as usize][x as usize] as usize;
+        self.position = (y, x);
+        Some(self)
     }
 }
-
-const KEEP_PATHS: usize = 12;
 
 fn part_1(input: &str) -> usize {
     let map = input
@@ -113,109 +96,59 @@ fn part_1(input: &str) -> usize {
     let h = map.len();
     let w = map[0].len();
 
-    let path = Path {
-        path: vec![(0, 0)],
+    let state = State {
         heat_loss: 0,
-        last_direction: Direction::East,
-        consecutive_moves: 0,
+        position: (0, 0),
+        last_move_direction: Direction::East,
+        last_move_count: 0,
     };
 
-    // keep track of the two best ways to get to any cell.
-    // this will always have some way to get to adjacent cells that won't cause three
-    // consecutive straight line movements.
-    let mut bests: Vec<Vec<[Option<Path>; KEEP_PATHS]>> = vec![
-        vec![
-            {
-                const NONE: Option<Path> = None;
-                [NONE; KEEP_PATHS]
-            };
-            w
-        ];
-        h
-    ];
-    bests[0][0] = vec![Some(path.clone()); KEEP_PATHS].try_into().unwrap();
-
-    let insert_path = |bests: &mut [Option<Path>; KEEP_PATHS], path: Path| -> bool {
-        for idx in 0..KEEP_PATHS {
-            match &bests[idx] {
-                Some(best) => {
-                    if path.heat_loss < best.heat_loss {
-                        bests[idx..].rotate_right(1);
-                        bests[idx] = Some(path);
-                        return true;
-                    } else if path == *best {
-                        return false;
-                    }
-                }
-                None => {
-                    bests[idx] = Some(path);
-                    return true;
-                }
+    let mut queue = BinaryHeap::from([state]);
+    // (y, x, dir, dircount)
+    let mut best_heat_loss: HashMap<((u8, u8), Direction, u8), usize> = HashMap::new();
+    while let Some(state) = queue.pop() {
+        if state.position == ((h - 1) as u8, (w - 1) as u8) {
+            return state.heat_loss;
+        } else if let Some(best_heat_loss) = best_heat_loss.get_mut(&(
+            state.position,
+            state.last_move_direction,
+            state.last_move_count,
+        )) {
+            if state.heat_loss < *best_heat_loss {
+                *best_heat_loss = state.heat_loss;
+            } else {
+                continue;
+            }
+        } else {
+            best_heat_loss.insert(
+                (
+                    state.position,
+                    state.last_move_direction,
+                    state.last_move_count,
+                ),
+                state.heat_loss,
+            );
+        }
+        static mut COUNTER: u32 = 0;
+        unsafe {
+            if COUNTER % 0x100000 == 0 {
+                dbg!(state);
+            }
+            COUNTER = COUNTER.wrapping_add(1);
+        }
+        for direction in [
+            Direction::North,
+            Direction::East,
+            Direction::South,
+            Direction::West,
+        ] {
+            if let Some(state) = state.and_move(&map, direction) {
+                queue.push(state);
             }
         }
-        false
-    };
-
-    let mut re_check_adjacent_to: Vec<(usize, usize)> = vec![(0, 0)];
-    while !re_check_adjacent_to.is_empty() {
-        let mut new_re_check_adjacent_to = vec![];
-        for (y, x) in re_check_adjacent_to {
-            if y > 0 {
-                // check going north
-                for path in bests[y][x]
-                    .iter()
-                    .flat_map(|path| path.as_ref()?.and_move(&map, Direction::North))
-                    .collect_vec()
-                {
-                    if insert_path(&mut bests[y - 1][x], path) {
-                        new_re_check_adjacent_to.push((y - 1, x));
-                    }
-                }
-            }
-            if y + 1 < h {
-                // check going south
-                for path in bests[y][x]
-                    .iter()
-                    .flat_map(|path| path.as_ref()?.and_move(&map, Direction::South))
-                    .collect_vec()
-                {
-                    if insert_path(&mut bests[y + 1][x], path) {
-                        new_re_check_adjacent_to.push((y + 1, x));
-                    }
-                }
-            }
-            if x > 0 {
-                // check going west
-                for path in bests[y][x]
-                    .iter()
-                    .flat_map(|path| path.as_ref()?.and_move(&map, Direction::West))
-                    .collect_vec()
-                {
-                    if insert_path(&mut bests[y][x - 1], path) {
-                        new_re_check_adjacent_to.push((y, x - 1));
-                    }
-                }
-            }
-            if x + 1 < w {
-                // check going south
-                for path in bests[y][x]
-                    .iter()
-                    .flat_map(|path| path.as_ref()?.and_move(&map, Direction::East))
-                    .collect_vec()
-                {
-                    if insert_path(&mut bests[y][x + 1], path) {
-                        new_re_check_adjacent_to.push((y, x + 1));
-                    }
-                }
-            }
-        }
-        re_check_adjacent_to = new_re_check_adjacent_to;
     }
 
-    let best_path = bests[h - 1][w - 1][0].as_ref().unwrap();
-    best_path.print(&map);
-
-    bests[h - 1][w - 1][0].as_ref().unwrap().heat_loss
+    todo!()
 }
 
 fn part_2(input: &str) -> usize {
