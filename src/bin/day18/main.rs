@@ -3,36 +3,106 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use aoc_2023::*;
 use aoc_driver::*;
+use derive_more::{Add, From, Into, Mul};
 use itertools::Itertools;
 use zachs18_stdx::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Direction {
-    Up,
-    Right,
-    Down,
-    Left,
+    North,
+    East,
+    South,
+    West,
+}
+
+enum Trench {
+    North,
+    NorthEast,
+    NorthWest,
+    South,
+    SouthEast,
+    SouthWest,
+    East,
+    West,
+}
+
+#[derive(Debug, Clone, Copy, From, Into, Add, Mul)]
+struct Point {
+    y: isize,
+    x: isize,
+}
+
+fn signed_area_clockwise_from_origin_in_halves(p2: Point, p3: Point) -> isize {
+    let Point { y: y1, x: x1 } = (0, 0).into();
+    let Point { y: y2, x: x2 } = p2;
+    let Point { y: y3, x: x3 } = p3;
+    let a = x1 * (y2 - y3);
+    let b = x2 * (y3 - y1);
+    let c = x3 * (y1 - y2);
+    (a + b + c)
 }
 
 impl Direction {
-    fn offset(self) -> (isize, isize) {
+    fn offset(self) -> Point {
         match self {
-            Direction::Up => (-1, 0),
-            Direction::Right => (0, 1),
-            Direction::Down => (1, 0),
-            Direction::Left => (0, -1),
+            Direction::North => (-1, 0),
+            Direction::East => (0, 1),
+            Direction::South => (1, 0),
+            Direction::West => (0, -1),
         }
+        .into()
     }
     /// number of 90 degree clockwise rotations
     fn rotation_from(self, from: Self) -> isize {
         use Direction::*;
         match (self, from) {
-            (Up, Up) | (Right, Right) | (Down, Down) | (Left, Left) => 0,
-            (Up, Right) | (Right, Down) | (Down, Left) | (Left, Up) => 1,
-            (Right, Up) | (Down, Right) | (Left, Down) | (Up, Left) => -1,
+            (North, North) | (East, East) | (South, South) | (West, West) => 0,
+            (North, East) | (East, South) | (South, West) | (West, North) => 1,
+            (East, North) | (South, East) | (West, South) | (North, West) => -1,
             _ => unreachable!("{self:?} {from:?}"),
         }
     }
+
+    fn trench(self) -> Trench {
+        match self {
+            Direction::North => Trench::North,
+            Direction::East => Trench::East,
+            Direction::South => Trench::South,
+            Direction::West => Trench::West,
+        }
+    }
+
+    /// (turn, straight)
+    /// turn should overwrite the current location
+    fn trench_from(self, prev: Self) -> (Trench, Trench) {
+        use Direction::*;
+        let straight = self.trench();
+        let turn = match (self, prev) {
+            (North | South, North | South) | (East | West, East | West) => {
+                unreachable!("not a turn")
+            }
+            (North, East) | (East, North) => Trench::NorthEast,
+            (South, East) | (East, South) => Trench::SouthEast,
+            (North, West) | (West, North) => Trench::NorthWest,
+            (South, West) | (West, South) => Trench::SouthWest,
+        };
+        (turn, straight)
+    }
+}
+
+fn calculate_area(path: &[(Direction, usize)]) -> usize {
+    let mut total_side_length: usize = 0;
+    let mut current_signed_area_in_halves: isize = 0;
+    let mut prev_point: Point = (0, 0).into();
+    for &(direction, dist) in path {
+        total_side_length += dist;
+        let current_point = prev_point + direction.offset() * dist as isize;
+        let a = signed_area_clockwise_from_origin_in_halves(prev_point, current_point);
+        current_signed_area_in_halves += a;
+        prev_point = current_point;
+    }
+
+    current_signed_area_in_halves.abs_diff(0) / 2 + total_side_length / 2 + 1
 }
 
 fn part_1(input: &str) -> usize {
@@ -42,26 +112,45 @@ fn part_1(input: &str) -> usize {
         .map(|line| {
             let mut fields = line.split_whitespace();
             let direction = match fields.next().unwrap() {
-                "R" => Direction::Right,
-                "U" => Direction::Up,
-                "D" => Direction::Down,
-                "L" => Direction::Left,
+                "R" => Direction::East,
+                "U" => Direction::North,
+                "D" => Direction::South,
+                "L" => Direction::West,
+                _ => unreachable!(),
+            };
+            let count = fields.next().unwrap().parse::<usize>().unwrap();
+            (direction, count)
+        })
+        .collect_vec();
+    calculate_area(&path)
+}
+
+#[cfg(any())]
+fn part_1_aaa(input: &str) -> usize {
+    let path = input
+        .lines()
+        .map(str::trim)
+        .map(|line| {
+            let mut fields = line.split_whitespace();
+            let direction = match fields.next().unwrap() {
+                "R" => Direction::East,
+                "U" => Direction::North,
+                "D" => Direction::South,
+                "L" => Direction::West,
                 _ => unreachable!(),
             };
             let count = fields.next().unwrap().parse::<isize>().unwrap();
             (direction, count)
         })
         .collect_vec();
-    let mut map: BTreeMap<isize, BTreeSet<isize>> = BTreeMap::from([(0, BTreeSet::from([0]))]);
+    let mut map: BTreeMap<isize, BTreeMap<isize, Trench>> =
+        BTreeMap::from([(0, BTreeSet::from([0]))]);
     let mut y = 0;
     let mut x = 0;
-    let mut prev_dir = path[0].0;
-
-    let mut total_rotations = 0;
+    let mut prev_dir = path.last().unwrap().0;
 
     for (direction, length) in path {
         let (dy, dx) = direction.offset();
-        total_rotations += dbg!(direction.rotation_from(prev_dir));
         prev_dir = direction;
         for _ in 0..length {
             y += dy;
@@ -69,7 +158,6 @@ fn part_1(input: &str) -> usize {
             map.entry(y).or_default().insert(x);
         }
     }
-    // panic!("{total_rotations}");
 
     let &miny = map.first_key_value().unwrap().0;
     let &minx = map.values().map(|row| row.first().unwrap()).min().unwrap();
@@ -79,18 +167,11 @@ fn part_1(input: &str) -> usize {
     let w = (maxx - minx + 1) as usize;
     let h = (maxy - miny + 1) as usize;
 
-    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-    enum Cell {
-        Trench,
-        Outside,
-        Unknown,
-    }
-
-    let mut maap = vec![vec![Cell::Unknown; w]; h];
+    let mut maap = vec![vec![None::<Trench>; w]; h];
 
     for (y, row) in map {
         for x in row {
-            maap[(y - miny) as usize][(x - minx) as usize] = Cell::Trench;
+            maap[(y - miny) as usize][(x - minx) as usize] = Some(Cell::Trench);
         }
     }
 
@@ -169,7 +250,34 @@ fn part_1(input: &str) -> usize {
 }
 
 fn part_2(input: &str) -> usize {
-    todo!()
+    let (path1, path2): (Vec<(Direction, usize)>, Vec<(Direction, usize)>) = input
+        .lines()
+        .map(str::trim)
+        .map(|line| {
+            let mut fields = line.split_whitespace();
+            let direction1 = match fields.next().unwrap() {
+                "R" => Direction::East,
+                "U" => Direction::North,
+                "D" => Direction::South,
+                "L" => Direction::West,
+                _ => unreachable!(),
+            };
+            let count1 = fields.next().unwrap().parse::<usize>().unwrap();
+            let rgb = fields.next().unwrap();
+            dbg!(&rgb[2..rgb.len() - 2]);
+            let count2 = usize::from_str_radix(&rgb[2..rgb.len() - 2], 16).unwrap();
+            let direction2 = match &rgb[rgb.len() - 2..][..1] {
+                "0" => Direction::East,
+                "3" => Direction::North,
+                "1" => Direction::South,
+                "2" => Direction::West,
+                _ => unreachable!(),
+            };
+
+            ((direction1, count1), (direction2, count2))
+        })
+        .unzip();
+    calculate_area(&path2)
 }
 
 fn main() {
@@ -200,5 +308,5 @@ U 3 (#a77fa3)
 L 2 (#015232)
 U 2 (#7a21e3)";
     assert_eq!(part_1(input), 62);
-    assert_eq!(part_2(input), 42);
+    assert_eq!(part_2(input), 952408144115);
 }
