@@ -154,7 +154,11 @@ impl<'a> Condition<'a> {
         applies.then_some(self.destination)
     }
 
-    fn run_range(&self, part: RangePart) -> Vec<(RangePart, Option<Destination<'a>>)> {
+    /// Returns `((applies, new_destination), doesnt_apply)`
+    fn run_range(
+        &self,
+        part: RangePart,
+    ) -> (Option<(RangePart, Destination<'a>)>, Option<RangePart>) {
         let (min, max) = part.get_rating(self.rating);
         let (applies, doesnt) = match self.condition {
             ConditionKind::LessThan(a) => {
@@ -184,14 +188,8 @@ impl<'a> Condition<'a> {
                 }
             }
         };
-        match (applies, doesnt) {
-            (None, None) => unreachable!(),
-            (None, Some(doesnt)) => vec![(doesnt, None)],
-            (Some(applies), None) => vec![(applies, Some(self.destination))],
-            (Some(applies), Some(doesnt)) => {
-                vec![(applies, Some(self.destination)), (doesnt, None)]
-            }
-        }
+        let applies = applies.map(|applies| (applies, self.destination));
+        (applies, doesnt)
     }
 }
 
@@ -262,11 +260,12 @@ impl<'a> Workflow<'a> {
         for &condition in &self.conditions {
             let mut new_not_done = vec![];
             for part in not_done {
-                for (part, dest) in condition.run_range(part) {
-                    match dest {
-                        Some(dest) => done.push((part, dest)),
-                        None => new_not_done.push(part),
-                    }
+                let (applies, doesnt_apply) = condition.run_range(part);
+                if let Some((part, dest)) = applies {
+                    done.push((part, dest));
+                }
+                if let Some(part) = doesnt_apply {
+                    new_not_done.push(part);
                 }
             }
             not_done = new_not_done;
@@ -344,7 +343,7 @@ fn part_2(input: &str) -> usize {
             }
             Destination::Reject => continue 'parts,
         };
-        queue.extend(dbg!(workflow.run_range(part)));
+        queue.extend(workflow.run_range(part));
     }
     total_number_of_accepted
 }
