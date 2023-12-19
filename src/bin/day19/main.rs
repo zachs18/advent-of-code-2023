@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use aoc_2023::*;
 use aoc_driver::*;
@@ -28,22 +28,22 @@ impl Part {
         x + m + a + s
     }
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum ConditionKind {
     LessThan(usize),
     GreaterThan(usize),
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Rating {
     X,
     M,
     A,
     S,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 enum Destination<'a> {
     Workflow(&'a str),
     Accept,
@@ -117,7 +117,7 @@ fn part_1(input: &str) -> usize {
             let (x, line) = line.split_once(",m=").unwrap();
             let (m, line) = line.split_once(",a=").unwrap();
             let (a, line) = line.split_once(",s=").unwrap();
-            let s = line.strip_suffix("}").unwrap();
+            let s = line.strip_suffix('}').unwrap();
             Part {
                 x: x.parse().unwrap(),
                 m: m.parse().unwrap(),
@@ -170,21 +170,15 @@ fn part_1(input: &str) -> usize {
         .collect();
 
     let mut total_rating_of_accepted = 0;
-    for part in parts {
-        let mut seen: HashSet<&Workflow<'_>> = HashSet::new();
+    'parts: for part in parts {
         let mut workflow = workflows.get("in").unwrap();
         loop {
-            if !seen.insert(workflow) {
-                // loop
-                break;
-            }
-            // dbg!(workflow, part);
             match workflow.run(part) {
                 Ok(is_accepted) => {
                     if is_accepted {
                         total_rating_of_accepted += part.sum_ratings();
                     }
-                    continue;
+                    continue 'parts;
                 }
                 Err(dest) => workflow = workflows.get(dest).unwrap(),
             }
@@ -227,6 +221,6 @@ hdj{m>838:A,pv}
 {x=2036,m=264,a=79,s=2244}
 {x=2461,m=1339,a=466,s=291}
 {x=2127,m=1623,a=2188,s=1013}";
-    assert_eq!(part_1(input), 42);
+    assert_eq!(part_1(input), 19114);
     // assert_eq!(part_2(input), 42);
 }
