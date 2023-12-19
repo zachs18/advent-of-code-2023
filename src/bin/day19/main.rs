@@ -1,12 +1,7 @@
-use std::{
-    collections::{HashMap, VecDeque},
-    ops::RangeInclusive,
-};
+use std::collections::{HashMap, VecDeque};
 
-use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Part {
@@ -42,16 +37,6 @@ struct RangePart {
 }
 
 impl RangePart {
-    fn get_rating_range(&self, rating: Rating) -> RangeInclusive<usize> {
-        let (min, max) = match rating {
-            Rating::X => self.x,
-            Rating::M => self.m,
-            Rating::A => self.a,
-            Rating::S => self.s,
-        };
-        min..=max
-    }
-
     fn get_rating(&self, rating: Rating) -> (usize, usize) {
         match rating {
             Rating::X => self.x,
@@ -71,6 +56,10 @@ impl RangePart {
         self
     }
 
+    /// I at first thought part 2 was asking for the *sum of the ratings* of distinct accepted parts;
+    /// it was actually only asking for the *number* of distinct accepted parts.
+    /// Thus, this function is unnecessary, but I'm keeping it because I think it's neat.
+    #[allow(unused)]
     fn sum_ratings(&self) -> usize {
         let RangePart {
             x: (x_min, x_max),
@@ -87,10 +76,10 @@ impl RangePart {
         let a_sum = a_max * (a_max + 1) / 2 - a_min * (a_min - 1) / 2;
         let s_sum = s_max * (s_max + 1) / 2 - s_min * (s_min - 1) / 2;
 
-        return x_sum * m_count * a_count * s_count
+        x_sum * m_count * a_count * s_count
             + x_count * m_sum * a_count * s_count
             + x_count * m_count * a_sum * s_count
-            + x_count * m_count * a_count * s_sum;
+            + x_count * m_count * a_count * s_sum
     }
 
     fn full() -> Self {
@@ -213,6 +202,51 @@ struct Workflow<'a> {
 }
 
 impl<'a> Workflow<'a> {
+    fn parse_workflows(workflows: &[&'a str]) -> HashMap<&'a str, Self> {
+        workflows
+            .iter()
+            .map(|line| {
+                let (workflow, line) = line.split_once('{').unwrap();
+                let line = line.strip_suffix('}').unwrap();
+                let mut conditions = vec![];
+                let mut default = None;
+                for condition in line.split(',') {
+                    let Some((comparison, destination)) = condition.split_once(':') else {
+                        default = Some(make_dest(condition));
+                        break;
+                    };
+                    let rating = comparison.as_bytes()[0];
+                    let number: usize = comparison[2..].parse().unwrap();
+                    let comparison = comparison.as_bytes()[1];
+                    let rating = match rating {
+                        b'x' => Rating::X,
+                        b'm' => Rating::M,
+                        b'a' => Rating::A,
+                        b's' => Rating::S,
+                        _ => unreachable!(),
+                    };
+                    let comparison = match comparison {
+                        b'<' => ConditionKind::LessThan(number),
+                        b'>' => ConditionKind::GreaterThan(number),
+                        _ => unreachable!(),
+                    };
+                    conditions.push(Condition {
+                        rating,
+                        condition: comparison,
+                        destination: make_dest(destination),
+                    });
+                }
+                (
+                    workflow,
+                    Workflow {
+                        conditions,
+                        otherwise: default.unwrap(),
+                    },
+                )
+            })
+            .collect()
+    }
+
     fn run(&self, part: Part) -> Result<bool, &'a str> {
         for &condition in &self.conditions {
             if let Some(dest) = condition.run(part) {
@@ -273,48 +307,7 @@ fn part_1(input: &str) -> usize {
             }
         })
         .collect_vec();
-    let workflows: HashMap<&str, Workflow<'_>> = workflows
-        .iter()
-        .map(|line| {
-            let (workflow, line) = line.split_once('{').unwrap();
-            let line = line.strip_suffix('}').unwrap();
-            let mut conditions = vec![];
-            let mut default = None;
-            for condition in line.split(',') {
-                let Some((comparison, destination)) = condition.split_once(':') else {
-                    default = Some(make_dest(condition));
-                    break;
-                };
-                let rating = comparison.as_bytes()[0];
-                let number: usize = comparison[2..].parse().unwrap();
-                let comparison = comparison.as_bytes()[1];
-                let rating = match rating {
-                    b'x' => Rating::X,
-                    b'm' => Rating::M,
-                    b'a' => Rating::A,
-                    b's' => Rating::S,
-                    _ => unreachable!(),
-                };
-                let comparison = match comparison {
-                    b'<' => ConditionKind::LessThan(number),
-                    b'>' => ConditionKind::GreaterThan(number),
-                    _ => unreachable!(),
-                };
-                conditions.push(Condition {
-                    rating,
-                    condition: comparison,
-                    destination: make_dest(destination),
-                });
-            }
-            (
-                workflow,
-                Workflow {
-                    conditions,
-                    otherwise: default.unwrap(),
-                },
-            )
-        })
-        .collect();
+    let workflows = Workflow::parse_workflows(workflows);
 
     let mut total_rating_of_accepted = 0;
     'parts: for part in parts {
@@ -336,53 +329,8 @@ fn part_1(input: &str) -> usize {
 
 fn part_2(input: &str) -> usize {
     let data = input.lines().map(str::trim).collect_vec();
-    let [workflows, ratings]: [&[&str]; 2] = data
-        .split(|line| line.is_empty())
-        .collect_vec()
-        .try_into()
-        .unwrap();
-    let workflows: HashMap<&str, Workflow<'_>> = workflows
-        .iter()
-        .map(|line| {
-            let (workflow, line) = line.split_once('{').unwrap();
-            let line = line.strip_suffix('}').unwrap();
-            let mut conditions = vec![];
-            let mut default = None;
-            for condition in line.split(',') {
-                let Some((comparison, destination)) = condition.split_once(':') else {
-                    default = Some(make_dest(condition));
-                    break;
-                };
-                let rating = comparison.as_bytes()[0];
-                let number: usize = comparison[2..].parse().unwrap();
-                let comparison = comparison.as_bytes()[1];
-                let rating = match rating {
-                    b'x' => Rating::X,
-                    b'm' => Rating::M,
-                    b'a' => Rating::A,
-                    b's' => Rating::S,
-                    _ => unreachable!(),
-                };
-                let comparison = match comparison {
-                    b'<' => ConditionKind::LessThan(number),
-                    b'>' => ConditionKind::GreaterThan(number),
-                    _ => unreachable!(),
-                };
-                conditions.push(Condition {
-                    rating,
-                    condition: comparison,
-                    destination: make_dest(destination),
-                });
-            }
-            (
-                workflow,
-                Workflow {
-                    conditions,
-                    otherwise: default.unwrap(),
-                },
-            )
-        })
-        .collect();
+    let workflows = data.split(|line| line.is_empty()).next().unwrap();
+    let workflows = Workflow::parse_workflows(workflows);
 
     let mut queue = VecDeque::from([(RangePart::full(), Destination::Workflow("in"))]);
 
@@ -433,16 +381,4 @@ hdj{m>838:A,pv}
 {x=2127,m=1623,a=2188,s=1013}";
     assert_eq!(part_1(input), 19114);
     assert_eq!(part_2(input), 167409079868000);
-}
-
-#[test]
-fn sum_ratings() {
-    let p = RangePart {
-        x: (1, 4),
-        m: (1, 4),
-        a: (1, 4),
-        s: (1, 4),
-    };
-    dbg!(p.sum_ratings());
-    panic!();
 }
