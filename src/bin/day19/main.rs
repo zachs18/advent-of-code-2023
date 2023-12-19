@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::{HashMap, VecDeque},
+    ops::RangeInclusive,
+};
 
 use aoc_2023::*;
 use aoc_driver::*;
@@ -26,6 +29,91 @@ impl Part {
     fn sum_ratings(&self) -> usize {
         let Part { x, m, a, s } = *self;
         x + m + a + s
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+struct RangePart {
+    /// Inclusive range (start, end)
+    x: (usize, usize),
+    m: (usize, usize),
+    a: (usize, usize),
+    s: (usize, usize),
+}
+
+impl RangePart {
+    fn get_rating_range(&self, rating: Rating) -> RangeInclusive<usize> {
+        let (min, max) = match rating {
+            Rating::X => self.x,
+            Rating::M => self.m,
+            Rating::A => self.a,
+            Rating::S => self.s,
+        };
+        min..=max
+    }
+
+    fn get_rating(&self, rating: Rating) -> (usize, usize) {
+        match rating {
+            Rating::X => self.x,
+            Rating::M => self.m,
+            Rating::A => self.a,
+            Rating::S => self.s,
+        }
+    }
+
+    fn set_rating(mut self, rating: Rating, new: (usize, usize)) -> Self {
+        match rating {
+            Rating::X => self.x = new,
+            Rating::M => self.m = new,
+            Rating::A => self.a = new,
+            Rating::S => self.s = new,
+        }
+        self
+    }
+
+    fn sum_ratings(&self) -> usize {
+        let RangePart {
+            x: (x_min, x_max),
+            m: (m_min, m_max),
+            a: (a_min, a_max),
+            s: (s_min, s_max),
+        } = *self;
+        let x_count = x_max - x_min + 1;
+        let m_count = m_max - m_min + 1;
+        let a_count = a_max - a_min + 1;
+        let s_count = s_max - s_min + 1;
+        let x_sum = x_max * (x_max + 1) / 2 - x_min * (x_min - 1) / 2;
+        let m_sum = m_max * (m_max + 1) / 2 - m_min * (m_min - 1) / 2;
+        let a_sum = a_max * (a_max + 1) / 2 - a_min * (a_min - 1) / 2;
+        let s_sum = s_max * (s_max + 1) / 2 - s_min * (s_min - 1) / 2;
+
+        return x_sum * m_count * a_count * s_count
+            + x_count * m_sum * a_count * s_count
+            + x_count * m_count * a_sum * s_count
+            + x_count * m_count * a_count * s_sum;
+    }
+
+    fn full() -> Self {
+        Self {
+            x: (1, 4000),
+            m: (1, 4000),
+            a: (1, 4000),
+            s: (1, 4000),
+        }
+    }
+
+    fn distinct_ratings(&self) -> usize {
+        let RangePart {
+            x: (x_min, x_max),
+            m: (m_min, m_max),
+            a: (a_min, a_max),
+            s: (s_min, s_max),
+        } = *self;
+        let x_count = x_max - x_min + 1;
+        let m_count = m_max - m_min + 1;
+        let a_count = a_max - a_min + 1;
+        let s_count = s_max - s_min + 1;
+        x_count * m_count * a_count * s_count
     }
 }
 
@@ -76,6 +164,46 @@ impl<'a> Condition<'a> {
         };
         applies.then_some(self.destination)
     }
+
+    fn run_range(&self, part: RangePart) -> Vec<(RangePart, Option<Destination<'a>>)> {
+        let (min, max) = part.get_rating(self.rating);
+        let (applies, doesnt) = match self.condition {
+            ConditionKind::LessThan(a) => {
+                if max < a {
+                    (Some(part), None)
+                } else if min >= a {
+                    (None, Some(part))
+                } else {
+                    let lowmax = a - 1;
+                    let highmin = a;
+                    let applies = part.set_rating(self.rating, (min, lowmax));
+                    let doesnt = part.set_rating(self.rating, (highmin, max));
+                    (Some(applies), Some(doesnt))
+                }
+            }
+            ConditionKind::GreaterThan(a) => {
+                if min > a {
+                    (Some(part), None)
+                } else if max <= a {
+                    (None, Some(part))
+                } else {
+                    let lowmax = a;
+                    let highmin = a + 1;
+                    let doesnt = part.set_rating(self.rating, (min, lowmax));
+                    let applies = part.set_rating(self.rating, (highmin, max));
+                    (Some(applies), Some(doesnt))
+                }
+            }
+        };
+        match (applies, doesnt) {
+            (None, None) => unreachable!(),
+            (None, Some(doesnt)) => vec![(doesnt, None)],
+            (Some(applies), None) => vec![(applies, Some(self.destination))],
+            (Some(applies), Some(doesnt)) => {
+                vec![(applies, Some(self.destination)), (doesnt, None)]
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -92,6 +220,25 @@ impl<'a> Workflow<'a> {
             }
         }
         self.otherwise.as_accepted()
+    }
+
+    fn run_range(&self, part: RangePart) -> Vec<(RangePart, Destination<'a>)> {
+        let mut not_done = vec![part];
+        let mut done = vec![];
+        for &condition in &self.conditions {
+            let mut new_not_done = vec![];
+            for part in not_done {
+                for (part, dest) in condition.run_range(part) {
+                    match dest {
+                        Some(dest) => done.push((part, dest)),
+                        None => new_not_done.push(part),
+                    }
+                }
+            }
+            not_done = new_not_done;
+        }
+        done.extend(not_done.into_iter().map(|part| (part, self.otherwise)));
+        done
     }
 }
 
@@ -188,7 +335,70 @@ fn part_1(input: &str) -> usize {
 }
 
 fn part_2(input: &str) -> usize {
-    todo!()
+    let data = input.lines().map(str::trim).collect_vec();
+    let [workflows, ratings]: [&[&str]; 2] = data
+        .split(|line| line.is_empty())
+        .collect_vec()
+        .try_into()
+        .unwrap();
+    let workflows: HashMap<&str, Workflow<'_>> = workflows
+        .iter()
+        .map(|line| {
+            let (workflow, line) = line.split_once('{').unwrap();
+            let line = line.strip_suffix('}').unwrap();
+            let mut conditions = vec![];
+            let mut default = None;
+            for condition in line.split(',') {
+                let Some((comparison, destination)) = condition.split_once(':') else {
+                    default = Some(make_dest(condition));
+                    break;
+                };
+                let rating = comparison.as_bytes()[0];
+                let number: usize = comparison[2..].parse().unwrap();
+                let comparison = comparison.as_bytes()[1];
+                let rating = match rating {
+                    b'x' => Rating::X,
+                    b'm' => Rating::M,
+                    b'a' => Rating::A,
+                    b's' => Rating::S,
+                    _ => unreachable!(),
+                };
+                let comparison = match comparison {
+                    b'<' => ConditionKind::LessThan(number),
+                    b'>' => ConditionKind::GreaterThan(number),
+                    _ => unreachable!(),
+                };
+                conditions.push(Condition {
+                    rating,
+                    condition: comparison,
+                    destination: make_dest(destination),
+                });
+            }
+            (
+                workflow,
+                Workflow {
+                    conditions,
+                    otherwise: default.unwrap(),
+                },
+            )
+        })
+        .collect();
+
+    let mut queue = VecDeque::from([(RangePart::full(), Destination::Workflow("in"))]);
+
+    let mut total_number_of_accepted = 0;
+    'parts: while let Some((part, at)) = queue.pop_front() {
+        let workflow = match at {
+            Destination::Workflow(at) => workflows.get(at).unwrap(),
+            Destination::Accept => {
+                total_number_of_accepted += part.distinct_ratings();
+                continue 'parts;
+            }
+            Destination::Reject => continue 'parts,
+        };
+        queue.extend(dbg!(workflow.run_range(part)));
+    }
+    total_number_of_accepted
 }
 
 fn main() {
@@ -222,5 +432,17 @@ hdj{m>838:A,pv}
 {x=2461,m=1339,a=466,s=291}
 {x=2127,m=1623,a=2188,s=1013}";
     assert_eq!(part_1(input), 19114);
-    // assert_eq!(part_2(input), 42);
+    assert_eq!(part_2(input), 167409079868000);
+}
+
+#[test]
+fn sum_ratings() {
+    let p = RangePart {
+        x: (1, 4),
+        m: (1, 4),
+        a: (1, 4),
+        s: (1, 4),
+    };
+    dbg!(p.sum_ratings());
+    panic!();
 }
