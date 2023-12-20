@@ -151,8 +151,115 @@ fn part_1<'input>(input: &'input str) -> usize {
     total_high_sent * total_low_sent
 }
 
-fn part_2(input: &str) -> usize {
-    todo!()
+fn part_2<'input>(input: &'input str) -> usize {
+    let mut modules: HashMap<&'input str, RefCell<Module<'input>>> = input
+        .lines()
+        .map(str::trim)
+        .chain(["button -> broadcaster"])
+        .map(|line| {
+            let (module, connections) = line.split_once(" -> ").unwrap();
+            let (module_kind, name) = match (module, module.chars().next().unwrap()) {
+                (_, '%') => (ModuleKind::FlipFlop { state: false }, &module[1..]),
+                (_, '&') => (
+                    ModuleKind::Conjunction {
+                        remembered_inputs: vec![],
+                    },
+                    &module[1..],
+                ),
+                ("broadcaster", _) => (ModuleKind::Broadcast, module),
+                ("button", _) => (ModuleKind::Button, module),
+                _ => unreachable!(),
+            };
+            (
+                name,
+                RefCell::new(Module {
+                    kind: module_kind,
+                    connections: connections
+                        .split(',')
+                        .map(str::trim)
+                        .map(|module| (module, 0))
+                        .collect_vec(),
+                }),
+            )
+        })
+        .collect();
+
+    for (name, module) in &modules {
+        let mut module = module.borrow_mut();
+        for (connection, conn_idx) in module.connections.iter_mut() {
+            let Some(dest) = modules.get(*connection) else {
+                // connection is a module with no outputs
+                continue;
+            };
+            let mut dest = dest.borrow_mut();
+            if let ModuleKind::Conjunction { remembered_inputs } = &mut dest.kind {
+                let idx = remembered_inputs.len();
+                remembered_inputs.push(false);
+                *conn_idx = idx;
+            }
+        }
+    }
+
+    let mut modules: HashMap<&str, Module<'_>> = modules
+        .into_iter()
+        .map(|(k, v)| (k, v.into_inner()))
+        .collect();
+
+    {
+        use std::io::Write;
+        let mut dotfile = std::fs::File::create("day20.dot").unwrap();
+        writeln!(dotfile, "digraph day20 {{").unwrap();
+        writeln!(dotfile, "  rx [shape=doublecircle,rank=20];").unwrap();
+        writeln!(dotfile, "  zh [rank=19];").unwrap();
+        writeln!(dotfile, "  bh [rank=18];").unwrap();
+        writeln!(dotfile, "  dl [rank=18];").unwrap();
+        writeln!(dotfile, "  vd [rank=18];").unwrap();
+        writeln!(dotfile, "  ns [rank=18];").unwrap();
+        for (&name, module) in &modules {
+            match module.kind {
+                ModuleKind::FlipFlop { .. } => {
+                    writeln!(dotfile, r#"  {name} [label="%{name}"];  "#).unwrap()
+                }
+                ModuleKind::Conjunction { .. } => {
+                    writeln!(dotfile, r#"  {name} [label="&{name}"];  "#).unwrap()
+                }
+                _ => {}
+            }
+
+            for &(connection, _) in &module.connections {
+                writeln!(dotfile, "  {name} -> {connection};").unwrap();
+            }
+        }
+        writeln!(dotfile, "}}").unwrap();
+        dotfile.flush().unwrap();
+    }
+
+    // (from, to, idx, is_high)
+    let mut pulses: VecDeque<(&str, &str, usize, bool)> = VecDeque::new();
+
+    for press_count in 1.. {
+        pulses.push_back(("button", "broadcaster", 0, false));
+
+        while let Some((src, dest, idx, high)) = pulses.pop_front() {
+            // println!("{src} -{high}-> {dest}");
+
+            if dest == "rx" && high == false {
+                return press_count;
+            }
+            let Some(module) = modules.get_mut(dest) else {
+                // module with no outputs
+                continue;
+            };
+            pulses.extend(
+                module
+                    .apply_pulse(high, idx)
+                    .into_iter()
+                    .map(|(newdest, idx, high)| (dest, newdest, idx, high)),
+            );
+        }
+    }
+
+    unreachable!()
 }
 
 fn main() {

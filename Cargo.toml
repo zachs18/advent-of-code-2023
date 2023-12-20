@@ -37,6 +37,7 @@ version = "0.3.6"
 
 [profile.release]
 overflow-checks = true
+debug = true
 
 [lints.clippy]
 # PreParsed requires the solution functions to take exactly a reference the parsed type,
