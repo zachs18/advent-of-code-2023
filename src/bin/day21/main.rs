@@ -64,7 +64,8 @@ fn part_2(input: &str) -> usize {
         .unwrap();
     let h = data.len();
     let w = data[0].len();
-    let mut possible: HashSet<(isize, isize)> = HashSet::from([((y as isize, x as isize))]);
+    let mut possible: HashMap<(usize, usize), HashSet<(isize, isize)>> =
+        HashMap::from([((y, x), HashSet::from([(0, 0)]))]);
     const COUNT: usize = {
         #[cfg(test)]
         {
@@ -76,43 +77,59 @@ fn part_2(input: &str) -> usize {
         }
     };
     for i in 0..COUNT {
-        dbg!(i, possible.len());
-        let mut new_possible = HashSet::new();
-        for (y, x) in possible {
-            let cy = y.rem_euclid(h as isize) as usize;
-            let cx = x.rem_euclid(w as isize) as usize;
+        dbg!(i, possible.len(), w, h);
+        let mut new_possible: HashMap<(usize, usize), HashSet<(isize, isize)>> = HashMap::new();
+        for ((y, x), possible_universes) in possible {
             {
-                let y = y - 1;
-                let cy = cy.checked_sub(1).unwrap_or(h - 1);
-                if data[cy][cx] != b'#' {
-                    new_possible.insert((y, x));
+                let y = y.checked_sub(1).unwrap_or(h - 1);
+                if data[y][x] != b'#' {
+                    let universes = new_possible.entry((y, x)).or_default();
+                    if y == h - 1 {
+                        universes.extend(possible_universes.iter().map(|&(y, x)| (y - 1, x)));
+                    } else {
+                        universes.extend(possible_universes.iter().copied());
+                    }
                 }
             }
             {
-                let y = y + 1;
-                let cy = (cy + 1) % h;
-                if data[cy][cx] != b'#' {
-                    new_possible.insert((y, x));
+                let y = (y + 1) % h;
+                if data[y][x] != b'#' {
+                    let universes = new_possible.entry((y, x)).or_default();
+                    if y == 0 {
+                        universes.extend(possible_universes.iter().map(|&(y, x)| (y + 1, x)));
+                    } else {
+                        universes.extend(possible_universes.iter().copied());
+                    }
                 }
             }
             {
-                let x = x - 1;
-                let cx = cx.checked_sub(1).unwrap_or(w - 1);
-                if data[cy][cx] != b'#' {
-                    new_possible.insert((y, x));
+                let x = x.checked_sub(1).unwrap_or(w - 1);
+                if data[y][x] != b'#' {
+                    let universes = new_possible.entry((y, x)).or_default();
+                    if x == w - 1 {
+                        universes.extend(possible_universes.iter().map(|&(y, x)| (y, x - 1)));
+                    } else {
+                        universes.extend(possible_universes.iter().copied());
+                    }
                 }
             }
             {
-                let x = x + 1;
-                let cx = (cx + 1) % w;
-                if data[cy][cx] != b'#' {
-                    new_possible.insert((y, x));
+                let y = (y + 1) % w;
+                if data[y][x] != b'#' {
+                    let universes = new_possible.entry((y, x)).or_default();
+                    if x == 0 {
+                        universes.extend(possible_universes.iter().map(|&(y, x)| (y, x + 1)));
+                    } else {
+                        universes.extend(possible_universes.iter().copied());
+                    }
                 }
             }
         }
         possible = new_possible;
     }
-    possible.len()
+    possible
+        .iter()
+        .fold(0, |acc, (_plot, univs)| acc + univs.len())
 }
 
 fn main() {
