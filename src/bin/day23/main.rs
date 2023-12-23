@@ -1,13 +1,7 @@
-#![allow(unused_imports)]
-use std::{
-    collections::{HashMap, HashSet, VecDeque},
-    rc::Rc,
-};
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 
-use aoc_2023::*;
 use aoc_driver::*;
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 fn part_1(input: &str) -> usize {
     let data = input
@@ -83,7 +77,7 @@ struct Graph {
     /// edges are bidirectional
     edges: HashMap<usize, (usize, usize, usize)>,
     /// node ID is index, value is the edges the node is connected to
-    node_edges: HashMap<usize, Vec<usize>>,
+    node_edges: BTreeMap<usize, Vec<usize>>,
     start_node_id: usize,
     end_node_id: usize,
 }
@@ -142,8 +136,9 @@ impl Graph {
     }
 
     fn simplify(mut self) -> Self {
+        let mut starting_node_id = 0;
         'retry: loop {
-            for (&node_id, node_edges) in self.node_edges.iter_mut() {
+            for (&node_id, node_edges) in self.node_edges.range_mut(starting_node_id..) {
                 if let [e1, e2] = **node_edges {
                     let (e1n1, e1n2, e1len) = self.edges[&e1];
                     let (e2n1, e2n2, e2len) = self.edges[&e2];
@@ -160,6 +155,7 @@ impl Graph {
                         }
                     }
 
+                    starting_node_id = node_id;
                     continue 'retry;
                 }
             }

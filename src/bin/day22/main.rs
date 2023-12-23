@@ -1,13 +1,9 @@
-#![allow(unused_imports)]
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap, VecDeque},
     ops::RangeInclusive,
 };
 
-use aoc_2023::*;
 use aoc_driver::*;
-use itertools::Itertools;
-use zachs18_stdx::*;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 struct Cube {
