@@ -1,11 +1,6 @@
-#![allow(unused_imports)]
-use std::ops::RangeInclusive;
-
-use aoc_2023::*;
 use aoc_driver::*;
 use glam::{DVec3, I64Vec3};
 use itertools::Itertools;
-use zachs18_stdx::*;
 
 #[derive(Debug, Clone, Copy)]
 struct Hailstone {
@@ -90,7 +85,7 @@ fn intersect_within_first_quadrant(
 }
 
 fn part_1(input: &str) -> usize {
-    let mut data = input
+    let data = input
         .lines()
         .map(str::trim)
         .map(|line| {
@@ -165,17 +160,28 @@ fn intersect2(h1: Hailstone2, h2: Hailstone2) -> bool {
         },
     } = h2;
 
-    // A: x0_1 + t*vx_1 = x0_2 + t*vx_2
-    //   t*(vx_1 - vx_2) = x0_2 - x0_1
-    //   t = x0_2 - x0_1 / (vx_1 - vx_2)
+    // None means IDK,
+    // Some(Err) means impossible
+    // Some(Ok(t)) means if it is possible it happens at time t
+    let check = |p0_1, v1, p0_2, v2| -> Option<Result<i64, ()>> {
+        let num = p0_2 - p0_1;
+        let denom = v1 - v2;
+        match (num, denom) {
+            (0, 0) => None,
+            (_, 0) => Some(Err(())),
+            _ => Some(Ok(num / denom)),
+        }
+    };
 
-    let num = x0_2 - x0_1;
-    let denom = vx_1 - vx_2;
-    if denom == 0 {
-        return false;
+    let t = check(x0_1, vx_1, x0_2, vx_2)
+        .or_else(|| check(y0_1, vy_1, y0_2, vy_2))
+        .or_else(|| check(z0_1, vz_1, z0_2, vz_2))
+        .unwrap_or(Ok(0));
+
+    match t {
+        Ok(t) => h1.t(t) == h2.t(t),
+        Err(_) => false,
     }
-    let t = num / denom;
-    h1.t(t) == h2.t(t)
 }
 
 // we could consider part 2 as a system of 900 equations (x,y,z for each hailstone)
@@ -192,7 +198,7 @@ fn intersect2(h1: Hailstone2, h2: Hailstone2) -> bool {
 // ~~assuming that the input is actually solvable, it shouldn't matter which 3 hailstones we choose to solve with.~~
 // actually that's not true, e.g. if the three hailstones we choose have the same velocity, then there are multiple solutions.
 // Also, this is not a system of *linear* equations, since we are multiplying some of the variables together,
-// so the "it should be solvable" doesn't necessarily apply
+// so the "it should be solvable" doesn't necessarily apply.
 
 fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone2> {
     // unknowns: rx0, ry0, rz0, rvx, rvy, rvz, t0, t1, t2
@@ -385,7 +391,7 @@ fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone
 }
 
 fn part_2(input: &str) -> i64 {
-    let mut data = input
+    let data = input
         .lines()
         .map(str::trim)
         .map(|line| {
@@ -417,10 +423,10 @@ fn part_2(input: &str) -> i64 {
                 let h2 = data[k];
                 if let Some(rock) = try_solve(h0, h1, h2) {
                     if data.iter().all(|&h| intersect2(rock, h)) {
+                        return rock.as_solution();
                     } else {
                         dbg!(h0, h1, h2, rock, "failed but not actually?");
                     }
-                    return rock.as_solution();
                 }
             }
         }
@@ -447,6 +453,6 @@ fn example() {
 20, 25, 34 @ -2, -2, -4
 12, 31, 28 @ -1, -2, -1
 20, 19, 15 @  1, -5, -3";
-    assert_eq!(part_1(input), 42);
-    assert_eq!(part_2(input), 42);
+    assert_eq!(part_1(input), 2);
+    assert_eq!(part_2(input), 47);
 }
