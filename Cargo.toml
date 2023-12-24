@@ -26,6 +26,7 @@ rayon = "1.8.0"
 indexmap = "2.1.0"
 derive_more = "0.99.17"
 glam = "0.25.0"
+z3 = "0.12.1"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
