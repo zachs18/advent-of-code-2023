@@ -200,6 +200,12 @@ fn intersect2(h1: Hailstone2, h2: Hailstone2) -> bool {
 // Also, this is not a system of *linear* equations, since we are multiplying some of the variables together,
 // so the "it should be solvable" doesn't necessarily apply.
 
+#[cfg(not(feature = "day24part2"))]
+fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone2> {
+    panic!("my day 24 part 2 requires z3")
+}
+
+#[cfg(feature = "day24part2")]
 fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone2> {
     // unknowns: rx0, ry0, rz0, rvx, rvy, rvz, t0, t1, t2
     // equations:
