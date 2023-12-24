@@ -1,3 +1,4 @@
+use aoc_2023::PreParsed;
 use aoc_driver::*;
 use glam::{DVec3, I64Vec3};
 use itertools::Itertools;
@@ -25,7 +26,39 @@ impl Hailstone2 {
     }
 }
 
-fn intersect_within_first_quadrant(
+fn parse(input: &str) -> Vec<(Hailstone, Hailstone2)> {
+    input
+        .lines()
+        .map(str::trim)
+        .map(|line| {
+            let (pos, vel) = line.split_once('@').unwrap();
+            let mut pos = pos.split(',').map(|s| s.trim().parse().unwrap());
+            let mut vel = vel.split(',').map(|s| s.trim().parse().unwrap());
+            let pos = I64Vec3 {
+                x: pos.next().unwrap(),
+                y: pos.next().unwrap(),
+                z: pos.next().unwrap(),
+            };
+            let vel = I64Vec3 {
+                x: vel.next().unwrap(),
+                y: vel.next().unwrap(),
+                z: vel.next().unwrap(),
+            };
+            (
+                Hailstone {
+                    position: pos.as_dvec3(),
+                    velocity: vel.as_dvec3(),
+                },
+                Hailstone2 {
+                    position: pos,
+                    velocity: vel,
+                },
+            )
+        })
+        .collect_vec()
+}
+
+fn intersect_within_test_area(
     h1: Hailstone,
     h2: Hailstone,
     x_min: f64,
@@ -61,7 +94,7 @@ fn intersect_within_first_quadrant(
 
     // A: y0_1 + t1*vy_1 = y0_2 + t2*vy_2
     // B: x0_1 + t1*vx_1 = x0_2 + t2*vx_2
-    // this is a system of two equations with two unknowns so *should* be solvable
+    // this is a system of two linear equations with two unknowns so *should* be solvable
     // A - (vy_1/vx_1)*B: y0_1 + t1*vy_1 - (vy_1/vx_1)*(x0_1 + t1*vx_1) = y0_2 + t2*vy_2 - (vy_1/vx_1)*(x0_2 + t2*vx_2)
     //      y0_1 + t1*vy_1 - (vy_1/vx_1)*x0_1 - t1*vy_1 = y0_2 + t2*vy_2 - (vy_1/vx_1)*(x0_2 + t2*vx_2)
     //      y0_1 - (vy_1/vx_1)*x0_1 = y0_2 + t2*vy_2 - (vy_1/vx_1)*(x0_2 + t2*vx_2)
@@ -84,31 +117,7 @@ fn intersect_within_first_quadrant(
     t1 >= 0.0 && t2 >= 0.0 && x >= x_min && x <= x_max && y >= y_min && y <= y_max
 }
 
-fn part_1(input: &str) -> usize {
-    let data = input
-        .lines()
-        .map(str::trim)
-        .map(|line| {
-            let (pos, vel) = line.split_once('@').unwrap();
-            let mut pos = pos.split(',').map(|s| s.trim().parse().unwrap());
-            let mut vel = vel.split(',').map(|s| s.trim().parse().unwrap());
-            let pos = DVec3 {
-                x: pos.next().unwrap(),
-                y: pos.next().unwrap(),
-                z: pos.next().unwrap(),
-            };
-            let vel = DVec3 {
-                x: vel.next().unwrap(),
-                y: vel.next().unwrap(),
-                z: vel.next().unwrap(),
-            };
-            Hailstone {
-                position: pos,
-                velocity: vel,
-            }
-        })
-        .collect_vec();
-
+fn part_1(data: &Vec<(Hailstone, Hailstone2)>) -> usize {
     let mut intersection_count = 0;
 
     #[cfg(not(test))]
@@ -121,10 +130,10 @@ fn part_1(input: &str) -> usize {
     let max = 27.0;
 
     for i in 0..data.len() {
-        let stone1 = data[i];
+        let stone1 = data[i].0;
         for j in i + 1..data.len() {
-            let stone2 = data[j];
-            if intersect_within_first_quadrant(stone1, stone2, min, min, max, max) {
+            let stone2 = data[j].0;
+            if intersect_within_test_area(stone1, stone2, min, min, max, max) {
                 intersection_count += 1;
             }
         }
@@ -201,12 +210,12 @@ fn intersect2(h1: Hailstone2, h2: Hailstone2) -> bool {
 // so the "it should be solvable" doesn't necessarily apply.
 
 #[cfg(not(feature = "day24part2"))]
-fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone2> {
+fn try_solve2(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone2> {
     panic!("my day 24 part 2 requires z3")
 }
 
 #[cfg(feature = "day24part2")]
-fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone2> {
+fn try_solve2(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone2> {
     // unknowns: rx0, ry0, rz0, rvx, rvy, rvz, t0, t1, t2
     // equations:
     //  A: rx0 + t0*rvx = h0x0 + t0*h0vx
@@ -272,15 +281,9 @@ fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone
     }
 
     vars! {
-        rx0,
-        ry0,
-        rz0,
-        rvx,
-        rvy,
-        rvz,
-        t1,
-        t2,
-        t0,
+        rx0, ry0, rz0,
+        rvx, rvy, rvz,
+        t1, t2, t0,
     }
 
     macro_rules! consts {
@@ -292,24 +295,12 @@ fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone
     }
 
     consts! {
-        h0x0,
-        h0y0,
-        h0z0,
-        h0vx,
-        h0vy,
-        h0vz,
-        h1x0,
-        h1y0,
-        h1z0,
-        h1vx,
-        h1vy,
-        h1vz,
-        h2x0,
-        h2y0,
-        h2z0,
-        h2vx,
-        h2vy,
-        h2vz,
+        h0x0, h0y0, h0z0,
+        h0vx, h0vy, h0vz,
+        h1x0, h1y0, h1z0,
+        h1vx, h1vy, h1vz,
+        h2x0, h2y0, h2z0,
+        h2vx, h2vy, h2vz,
     }
 
     //  A: rx0 + t0*rvx = h0x0 + t0*h0vx
@@ -371,14 +362,9 @@ fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone
                     )*
                 };
             }
-
             get_values! {
-                rx0,
-                ry0,
-                rz0,
-                rvx,
-                rvy,
-                rvz,
+                rx0, ry0, rz0,
+                rvx, rvy, rvz,
             }
             Some(Hailstone2 {
                 position: I64Vec3 {
@@ -396,39 +382,15 @@ fn try_solve(h0: Hailstone2, h1: Hailstone2, h2: Hailstone2) -> Option<Hailstone
     }
 }
 
-fn part_2(input: &str) -> i64 {
-    let data = input
-        .lines()
-        .map(str::trim)
-        .map(|line| {
-            let (pos, vel) = line.split_once('@').unwrap();
-            let mut pos = pos.split(',').map(|s| s.trim().parse().unwrap());
-            let mut vel = vel.split(',').map(|s| s.trim().parse().unwrap());
-            let pos = I64Vec3 {
-                x: pos.next().unwrap(),
-                y: pos.next().unwrap(),
-                z: pos.next().unwrap(),
-            };
-            let vel = I64Vec3 {
-                x: vel.next().unwrap(),
-                y: vel.next().unwrap(),
-                z: vel.next().unwrap(),
-            };
-            Hailstone2 {
-                position: pos,
-                velocity: vel,
-            }
-        })
-        .collect_vec();
-
+fn part_2(data: &Vec<(Hailstone, Hailstone2)>) -> i64 {
     for i in 0..data.len() {
-        let h0 = data[i];
+        let h0 = data[i].1;
         for j in i + 1..data.len() {
-            let h1 = data[j];
+            let h1 = data[j].1;
             for k in j + 1..data.len() {
-                let h2 = data[k];
-                if let Some(rock) = try_solve(h0, h1, h2) {
-                    if data.iter().all(|&h| intersect2(rock, h)) {
+                let h2 = data[k].1;
+                if let Some(rock) = try_solve2(h0, h1, h2) {
+                    if data.iter().all(|&(_, h)| intersect2(rock, h)) {
                         return rock.as_solution();
                     } else {
                         dbg!(h0, h1, h2, rock, "failed but not actually?");
@@ -444,9 +406,12 @@ fn part_2(input: &str) -> i64 {
 fn main() {
     let session = std::fs::read_to_string(".session.txt").unwrap();
     let session = session.trim();
+    let mut both = PreParsed::new(parse, part_1, part_2);
+    let part_2 = both.part_2();
     if let Err(error) = aoc_magic!(session, 2023:24:2, part_2) {
         eprintln!("Part 2 failed: {error:?}");
     }
+    let part_1 = both.part_1();
     if let Err(error) = aoc_magic!(session, 2023:24:1, part_1) {
         eprintln!("Part 1 failed: {error:?}");
     }
@@ -459,6 +424,7 @@ fn example() {
 20, 25, 34 @ -2, -2, -4
 12, 31, 28 @ -1, -2, -1
 20, 19, 15 @  1, -5, -3";
-    assert_eq!(part_1(input), 2);
-    assert_eq!(part_2(input), 47);
+    let data = parse(input);
+    assert_eq!(part_1(&data), 2);
+    assert_eq!(part_2(&data), 47);
 }
